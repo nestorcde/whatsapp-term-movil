@@ -1,0 +1,60 @@
+# Dependencias
+node_modules/
+package-lock.json
+yarn.lock
+
+# Compilados
+dist/
+*.js
+*.d.ts
+*.js.map
+
+# Sesiones y tokens de WhatsApp
+session/
+tokens/
+*.data.json
+
+# Logs
+logs/
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Sistema operativo
+.DS_Store
+Thumbs.db
+
+# IDEs
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Archivos temporales
+tmp/
+temp/
+*.tmp
+
+# Uploads de la API (servidor)
+uploads/
+
+# Archivos de entorno
+.env
+.env.local
+.env.*.local
+
+# Repositorio clonado de wppconnect
+wppconnect/
+
+# Build de Android (app)
+app/android/build/
+app/android/.gradle/
+app/android/app/build/
+app/android/local.properties
+
+# Build de iOS (app)
+app/ios/Pods/
+app/ios/build/
+app/ios/*.xcworkspace/xcuserdata/
