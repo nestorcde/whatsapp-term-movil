@@ -29,9 +29,33 @@ pkg install git
 
 ## Instalación
 
+### En Termux/Android (Recomendado)
+
+Para instalar en Termux, usa el script automatizado que configura todas las dependencias necesarias, incluyendo Sharp con soporte WebAssembly para Android ARM64:
+
+```bash
+cd whatsapp-term-movil/server
+npm run setup:termux
+```
+
+O para instalar y arrancar el servidor en un solo comando:
+
+```bash
+npm run install:termux
+```
+
+Este script automatizado:
+- Limpia instalaciones previas
+- Configura Sharp con WebAssembly para Android ARM64
+- Instala todas las dependencias necesarias
+- Compila el proyecto TypeScript
+- Verifica que Sharp esté correctamente instalado
+
+### Instalación Manual (Desarrollo/Otras plataformas)
+
 1. Clonar o navegar al proyecto:
 ```bash
-cd whatsapp-term-movil
+cd whatsapp-term-movil/server
 ```
 
 2. Instalar dependencias:

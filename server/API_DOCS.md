@@ -660,7 +660,7 @@ curl http://localhost:3000/api/auth/link-code
 # Enviar mensaje
 curl -X POST http://localhost:3000/api/messages/send \
   -H "Content-Type: application/json" \
-  -d '{"phone":"5215512345678","message":"Hola!"}'
+  -d '{"phone":"595973159937","message":"Probando desde termux"}'
 
 # Obtener mensajes
 curl http://localhost:3000/api/messages

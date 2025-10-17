@@ -8,7 +8,9 @@
     "start": "node dist/server.js",
     "dev": "ts-node src/server.ts",
     "bot": "ts-node src/index.ts",
-    "clean": "rimraf dist session tokens"
+    "clean": "rimraf dist session tokens",
+    "setup:termux": "bash setup-termux.sh",
+    "install:termux": "npm run setup:termux && npm start"
   },
   "keywords": [
     "whatsapp",
