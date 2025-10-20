@@ -87,32 +87,35 @@ NODE
 echo "🧽 Limpiando node_modules y lockfile..."
 rm -rf node_modules package-lock.json
 
-# 7) Instalar dependencias del proyecto SIN bajar navegador
-echo "📥 Instalando dependencias del proyecto (sin descargar Chromium)..."
-# Forzamos arch wasm32 durante la instalación para que sharp se resuelva a wasm
-export npm_config_arch=wasm32
-export npm_config_force=true
-npm install --no-audit --no-fund
+# 7) Instalar dependencias del proyecto SIN bajar navegador y SIN sharp
+echo "📥 Instalando dependencias del proyecto (sin descargar Chromium ni Sharp)..."
+# Primero instalamos todo EXCEPTO sharp
+npm install --no-audit --no-fund --ignore-scripts
 
-# 8) Asegurar runtime wasm de sharp en la raíz (por si el postinstall fue salteado por cache)
-echo "🖼️ Asegurando Sharp en modo WASM..."
-npm install --include=optional @img/sharp-wasm32 --no-audit --no-fund || true
+# 8) Instalar Sharp con WASM explícitamente
+echo "🖼️ Instalando Sharp en modo WASM para Android ARM64..."
+npm install --cpu=wasm32 sharp --no-audit --no-fund
+npm install @img/sharp-wasm32 --no-audit --no-fund
 
-# 9) Eliminar 'sharp' anidados que rompan (si quedaron instalados debajo de wppconnect)
+# 9) Ejecutar scripts postinstall ahora que Sharp ya está instalado
+echo "🔧 Ejecutando scripts postinstall..."
+npm rebuild --no-audit --no-fund || true
+
+# 10) Eliminar 'sharp' anidados que rompan (si quedaron instalados debajo de wppconnect)
 echo "🧹 Eliminando sharp anidado (si existe) para forzar resolución a la raíz..."
 rm -rf node_modules/@wppconnect-team/wppconnect/node_modules/sharp || true
 
-# 10) Deduplicar dependencias para garantizar única instancia de sharp
+# 11) Deduplicar dependencias para garantizar única instancia de sharp
 echo "🧩 Ejecutando dedupe de npm..."
 npm dedupe || true
 
-# 11) Verificar Sharp en WASM
+# 12) Verificar Sharp en WASM
 echo "🔎 Verificando Sharp (WASM desde raíz)..."
 node -e "console.log(require('sharp').versions)" || {
   echo "⚠️  Advertencia: no se pudo cargar 'sharp' aún desde raíz."
 }
 
-# 12) Crear/actualizar config.json con Puppeteer apuntando a Chromium
+# 13) Crear/actualizar config.json con Puppeteer apuntando a Chromium
 echo "📝 Escribiendo config.json (puppeteerOptions → chromium headless)..."
 cat > config.json <<JSON
 {
@@ -131,7 +134,7 @@ cat > config.json <<JSON
 }
 JSON
 
-# 13) Compilar TypeScript (si existe script build o tsconfig.json)
+# 14) Compilar TypeScript (si existe script build o tsconfig.json)
 echo "🔨 Compilando proyecto..."
 if npm run | grep -qE 'build'; then
   npm run build
@@ -141,7 +144,7 @@ else
   fi
 fi
 
-# 14) Mostrar puertos/URLs útiles
+# 15) Mostrar puertos/URLs útiles
 PORT="$(node -e "try{console.log((require('./config.json')?.server?.port)||process.env.PORT||3000)}catch(e){console.log(process.env.PORT||3000)}" 2>/dev/null || echo 3000)"
 echo
 echo "=================================================="
@@ -153,7 +156,7 @@ echo "📍 URL Android: http://127.0.0.1:${PORT}"
 echo "=================================================="
 echo
 
-# 15) Iniciar el servidor con entorno correcto
+# 16) Iniciar el servidor con entorno correcto
 echo "🚀 Iniciando servidor..."
 exec env \
   SHARP_BACKEND=wasm \
