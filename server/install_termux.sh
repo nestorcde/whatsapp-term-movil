@@ -54,24 +54,11 @@ export CHROME_PATH="$CHROME_BIN"
 export PUPPETEER_ARGS="--headless=new --no-sandbox --disable-setuid-sandbox --disable-dev-shm-usage --disable-gpu --proxy-server=direct:// --no-proxy-server"
 export SHARP_BACKEND=wasm
 
-# 5) Limpiar instalación previa de npm
-echo "🧽 Limpiando node_modules y lockfile..."
-rm -rf node_modules package-lock.json
-
-# 6) Instalar dependencias del proyecto SIN bajar navegador y SIN sharp
-echo "📥 Instalando dependencias del proyecto (sin descargar Chromium ni Sharp)..."
-# Primero instalamos todo EXCEPTO sharp, sin ejecutar scripts
-npm install --no-audit --no-fund --ignore-scripts
-
-# 7) Instalar Sharp con WASM explícitamente (ANTES de agregar overrides)
-echo "🖼️ Instalando Sharp en modo WASM para Android ARM64..."
-npm install --cpu=wasm32 sharp --no-audit --no-fund
-npm install @img/sharp-wasm32 --no-audit --no-fund
-
-# 8) Ahora SÍ agregar overrides de sharp en package.json para forzar una sola versión
-echo "📝 Agregando overrides de sharp a package.json..."
+# 5) Respaldo y parcheo de package.json (overrides + scripts seguros)
+echo "📝 Preparando overrides de sharp y bloqueo de puppeteer..."
 cp package.json package.json.bak.$(date +%s) || true
 
+# Si no hay jq, ya lo instalamos arriba. Ahora aplicamos overrides y garantizamos scripts.
 node - <<'NODE'
 const fs = require('fs');
 const path = 'package.json';
@@ -85,33 +72,47 @@ pkg.overrides = Object.assign({}, pkg.overrides, {
   }
 });
 
+// scripts: no tocamos los existentes, solo agregamos postinstall seguro si falta
+pkg.scripts = pkg.scripts || {};
+if (!pkg.scripts.postinstall) {
+  // instala el runtime wasm sin romper si ya existe
+  pkg.scripts.postinstall = "node -e \"process.env.npm_config_arch='wasm32'\" && npm i --include=optional @img/sharp-wasm32 --no-audit --no-fund || true";
+}
+
 fs.writeFileSync(path, JSON.stringify(pkg, null, 2));
-console.log('✅ package.json actualizado con overrides.');
+console.log('✅ package.json actualizado con overrides y postinstall.');
 NODE
 
-# 9) Ejecutar scripts postinstall ahora que Sharp ya está instalado
-echo "🔧 Ejecutando scripts postinstall..."
-npm rebuild --no-audit --no-fund || true
+# 6) Limpiar instalación previa de npm
+echo "🧽 Limpiando node_modules y lockfile..."
+rm -rf node_modules package-lock.json
 
-# 10) Aplicar overrides ejecutando install nuevamente (esto respeta los overrides)
-echo "🔄 Aplicando overrides de Sharp..."
-npm install --no-audit --no-fund || true
+# 7) Instalar dependencias del proyecto SIN bajar navegador
+echo "📥 Instalando dependencias del proyecto (sin descargar Chromium)..."
+# Forzamos arch wasm32 durante la instalación para que sharp se resuelva a wasm
+export npm_config_arch=wasm32
+export npm_config_force=true
+npm install --no-audit --no-fund
 
-# 11) Eliminar 'sharp' anidados que rompan (si quedaron instalados debajo de wppconnect)
+# 8) Asegurar runtime wasm de sharp en la raíz (por si el postinstall fue salteado por cache)
+echo "🖼️ Asegurando Sharp en modo WASM..."
+npm install --include=optional @img/sharp-wasm32 --no-audit --no-fund || true
+
+# 9) Eliminar 'sharp' anidados que rompan (si quedaron instalados debajo de wppconnect)
 echo "🧹 Eliminando sharp anidado (si existe) para forzar resolución a la raíz..."
 rm -rf node_modules/@wppconnect-team/wppconnect/node_modules/sharp || true
 
-# 12) Deduplicar dependencias para garantizar única instancia de sharp
+# 10) Deduplicar dependencias para garantizar única instancia de sharp
 echo "🧩 Ejecutando dedupe de npm..."
 npm dedupe || true
 
-# 13) Verificar Sharp en WASM
+# 11) Verificar Sharp en WASM
 echo "🔎 Verificando Sharp (WASM desde raíz)..."
 node -e "console.log(require('sharp').versions)" || {
   echo "⚠️  Advertencia: no se pudo cargar 'sharp' aún desde raíz."
 }
 
-# 14) Crear/actualizar config.json con Puppeteer apuntando a Chromium
+# 12) Crear/actualizar config.json con Puppeteer apuntando a Chromium
 echo "📝 Escribiendo config.json (puppeteerOptions → chromium headless)..."
 cat > config.json <<JSON
 {
@@ -130,7 +131,7 @@ cat > config.json <<JSON
 }
 JSON
 
-# 15) Compilar TypeScript (si existe script build o tsconfig.json)
+# 13) Compilar TypeScript (si existe script build o tsconfig.json)
 echo "🔨 Compilando proyecto..."
 if npm run | grep -qE 'build'; then
   npm run build
@@ -140,7 +141,7 @@ else
   fi
 fi
 
-# 16) Mostrar puertos/URLs útiles
+# 14) Mostrar puertos/URLs útiles
 PORT="$(node -e "try{console.log((require('./config.json')?.server?.port)||process.env.PORT||3000)}catch(e){console.log(process.env.PORT||3000)}" 2>/dev/null || echo 3000)"
 echo
 echo "=================================================="
@@ -152,7 +153,7 @@ echo "📍 URL Android: http://127.0.0.1:${PORT}"
 echo "=================================================="
 echo
 
-# 17) Iniciar el servidor con entorno correcto
+# 15) Iniciar el servidor con entorno correcto
 echo "🚀 Iniciando servidor..."
 exec env \
   SHARP_BACKEND=wasm \
