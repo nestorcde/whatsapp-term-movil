@@ -94,29 +94,57 @@ export npm_config_arch=wasm32
 export npm_config_force=true
 npm install --no-audit --no-fund
 
-# 8) Reinstalar Sharp específicamente con --cpu=wasm32 para forzar runtime correcto
+# 8) Remover overrides temporalmente para poder reinstalar Sharp
+echo "🔧 Removiendo overrides temporalmente para reinstalar Sharp..."
+node - <<'NODE'
+const fs = require('fs');
+const path = 'package.json';
+const pkg = JSON.parse(fs.readFileSync(path, 'utf8'));
+delete pkg.overrides;
+delete pkg.scripts.postinstall;
+fs.writeFileSync(path, JSON.stringify(pkg, null, 2));
+NODE
+
+# 9) Reinstalar Sharp específicamente con --cpu=wasm32 para forzar runtime correcto
 echo "🖼️ Reinstalando Sharp con runtime WASM para Android ARM64..."
-npm install --cpu=wasm32 sharp --no-audit --no-fund --force || true
+npm install --cpu=wasm32 sharp --no-audit --no-fund || true
 
-# 9) Asegurar runtime wasm de sharp (@img/sharp-wasm32)
+# 10) Asegurar runtime wasm de sharp (@img/sharp-wasm32)
 echo "🖼️ Instalando @img/sharp-wasm32..."
-npm_config_arch=wasm32 npm install --include=optional @img/sharp-wasm32 --no-audit --no-fund --force || true
+npm_config_arch=wasm32 npm install --include=optional @img/sharp-wasm32 --no-audit --no-fund || true
 
-# 10) Eliminar 'sharp' anidados que rompan (si quedaron instalados debajo de wppconnect)
+# 11) Restaurar overrides en package.json
+echo "🔧 Restaurando overrides de Sharp..."
+node - <<'NODE'
+const fs = require('fs');
+const path = 'package.json';
+const pkg = JSON.parse(fs.readFileSync(path, 'utf8'));
+
+pkg.overrides = Object.assign({}, pkg.overrides, {
+  "sharp": "^0.34.4",
+  "@wppconnect-team/wppconnect": {
+    "sharp": "^0.34.4"
+  }
+});
+
+fs.writeFileSync(path, JSON.stringify(pkg, null, 2));
+NODE
+
+# 12) Eliminar 'sharp' anidados que rompan (si quedaron instalados debajo de wppconnect)
 echo "🧹 Eliminando sharp anidado (si existe) para forzar resolución a la raíz..."
 rm -rf node_modules/@wppconnect-team/wppconnect/node_modules/sharp || true
 
-# 11) Deduplicar dependencias para garantizar única instancia de sharp
+# 13) Deduplicar dependencias para garantizar única instancia de sharp
 echo "🧩 Ejecutando dedupe de npm..."
 npm dedupe || true
 
-# 12) Verificar Sharp en WASM
+# 14) Verificar Sharp en WASM
 echo "🔎 Verificando Sharp (WASM desde raíz)..."
 node -e "console.log(require('sharp').versions)" || {
   echo "⚠️  Advertencia: no se pudo cargar 'sharp' aún desde raíz."
 }
 
-# 13) Crear/actualizar config.json con Puppeteer apuntando a Chromium
+# 15) Crear/actualizar config.json con Puppeteer apuntando a Chromium
 echo "📝 Escribiendo config.json (puppeteerOptions → chromium headless)..."
 cat > config.json <<JSON
 {
@@ -135,7 +163,7 @@ cat > config.json <<JSON
 }
 JSON
 
-# 14) Compilar TypeScript (si existe script build o tsconfig.json)
+# 16) Compilar TypeScript (si existe script build o tsconfig.json)
 echo "🔨 Compilando proyecto..."
 if npm run | grep -qE 'build'; then
   npm run build
@@ -145,7 +173,7 @@ else
   fi
 fi
 
-# 15) Mostrar puertos/URLs útiles
+# 17) Mostrar puertos/URLs útiles
 PORT="$(node -e "try{console.log((require('./config.json')?.server?.port)||process.env.PORT||3000)}catch(e){console.log(process.env.PORT||3000)}" 2>/dev/null || echo 3000)"
 echo
 echo "=================================================="
@@ -157,7 +185,7 @@ echo "📍 URL Android: http://127.0.0.1:${PORT}"
 echo "=================================================="
 echo
 
-# 16) Iniciar el servidor con entorno correcto
+# 18) Iniciar el servidor con entorno correcto
 echo "🚀 Iniciando servidor..."
 exec env \
   SHARP_BACKEND=wasm \
