@@ -139,8 +139,12 @@ class WhatsAppService {
    * Iniciar sesión de WhatsApp
    */
   async startSession(phoneNumber?: string): Promise<void> {
+    // Si ya existe una sesión, cerrarla primero
     if (this.session.client) {
-      throw new Error('Ya existe una sesión activa');
+      logger.info('Cerrando sesión anterior antes de iniciar nueva...');
+      await this.closeSession();
+      // Esperar un poco para asegurar que el navegador se cierre completamente
+      await new Promise(resolve => setTimeout(resolve, 2000));
     }
 
     this.session.status = SessionStatus.CONNECTING;
