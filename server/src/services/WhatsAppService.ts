@@ -1,5 +1,7 @@
 import * as wppconnect from '@wppconnect-team/wppconnect';
 import QRCode from 'qrcode';
+import * as fs from 'fs';
+import * as path from 'path';
 import { SessionData, SessionStatus, MessageReceived } from '../types';
 import logger from '../utils/logger';
 import winstonLogger from '../utils/winstonLogger';
@@ -18,6 +20,8 @@ class WhatsAppService {
   private messageQueue: MessageReceived[] = [];
   private maxQueueSize = 100;
   private sessionName = 'api-session';
+  private lastStartAttempt: number = 0;
+  private minTimeBetweenStarts = 60000; // 1 minuto entre intentos de inicio
 
   /**
    * Obtener el estado de la sesión
@@ -139,13 +143,30 @@ class WhatsAppService {
    * Iniciar sesión de WhatsApp
    */
   async startSession(phoneNumber?: string): Promise<void> {
+    // Verificar límite de tasa
+    const now = Date.now();
+    const timeSinceLastAttempt = now - this.lastStartAttempt;
+
+    if (this.lastStartAttempt > 0 && timeSinceLastAttempt < this.minTimeBetweenStarts) {
+      const waitTime = Math.ceil((this.minTimeBetweenStarts - timeSinceLastAttempt) / 1000);
+      throw new Error(
+        `Por favor espera ${waitTime} segundos antes de intentar iniciar sesión nuevamente. ` +
+        `WhatsApp limita la frecuencia de intentos de vinculación.`
+      );
+    }
+
+    this.lastStartAttempt = now;
+
     // Si ya existe una sesión, cerrarla primero
     if (this.session.client) {
       logger.info('Cerrando sesión anterior antes de iniciar nueva...');
       await this.closeSession();
-      // Esperar un poco para asegurar que el navegador se cierre completamente
-      await new Promise(resolve => setTimeout(resolve, 2000));
     }
+
+    // Siempre esperar un poco antes de iniciar nueva sesión
+    // Esto asegura que cualquier proceso del navegador anterior haya terminado
+    logger.debug('Esperando a que procesos anteriores finalicen...');
+    await new Promise(resolve => setTimeout(resolve, 5000));
 
     this.session.status = SessionStatus.CONNECTING;
     this.session.usePhoneNumber = !!phoneNumber;
@@ -255,6 +276,37 @@ class WhatsAppService {
         logger.error('Error al cerrar sesión', error);
       }
       this.session.client = null;
+    }
+
+    // Esperar a que el navegador se cierre completamente
+    await new Promise(resolve => setTimeout(resolve, 3000));
+
+    // Eliminar archivos de tokens para que no se pueda recuperar la sesión
+    try {
+      const tokensPath = path.join(process.cwd(), 'tokens', this.sessionName);
+      if (fs.existsSync(tokensPath)) {
+        // Intentar varias veces por si hay locks de archivos
+        let attempts = 0;
+        const maxAttempts = 5;
+
+        while (attempts < maxAttempts) {
+          try {
+            fs.rmSync(tokensPath, { recursive: true, force: true });
+            logger.info(`Tokens eliminados: ${tokensPath}`);
+            break;
+          } catch (error: any) {
+            attempts++;
+            if (attempts >= maxAttempts) {
+              throw error;
+            }
+            logger.debug(`Intento ${attempts} de eliminar tokens falló, reintentando...`);
+            await new Promise(resolve => setTimeout(resolve, 1000));
+          }
+        }
+      }
+    } catch (error) {
+      logger.warn('No se pudieron eliminar los tokens automáticamente. Puede que haya procesos usando los archivos.');
+      logger.debug('Error al eliminar tokens', error);
     }
 
     this.session.status = SessionStatus.DISCONNECTED;
