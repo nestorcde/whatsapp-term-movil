@@ -1,7 +1,9 @@
 package com.whatsappbulk.sender.di
 
 import com.whatsappbulk.sender.data.repository.AuthRepository
+import com.whatsappbulk.sender.data.repository.WhatsAppRepository
 import com.whatsappbulk.sender.domain.repository.IAuthRepository
+import com.whatsappbulk.sender.domain.repository.IWhatsAppRepository
 import dagger.Binds
 import dagger.Module
 import dagger.hilt.InstallIn
@@ -17,4 +19,10 @@ abstract class RepositoryModule {
     abstract fun bindAuthRepository(
         authRepository: AuthRepository
     ): IAuthRepository
+
+    @Binds
+    @Singleton
+    abstract fun bindWhatsAppRepository(
+        whatsAppRepository: WhatsAppRepository
+    ): IWhatsAppRepository
 }

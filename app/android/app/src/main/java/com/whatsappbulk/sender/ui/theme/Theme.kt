@@ -13,12 +13,14 @@ import androidx.compose.runtime.SideEffect
 import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalView
+import androidx.compose.ui.graphics.Color
 import androidx.core.view.WindowCompat
 
 private val DarkColorScheme = darkColorScheme(
-    primary = Purple80,
-    secondary = PurpleGrey80,
-    tertiary = Pink80
+    primary = PrimaryVariant,
+    secondary = Secondary,
+    background = Color(0xFF1C1C1E),
+    surface = Color(0xFF2C2C2E)
 )
 
 private val LightColorScheme = lightColorScheme(

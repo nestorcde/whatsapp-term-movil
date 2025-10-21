@@ -125,9 +125,9 @@ fun LoginScreen(
                     IconButton(onClick = { passwordVisible = !passwordVisible }) {
                         Icon(
                             imageVector = if (passwordVisible)
-                                Icons.Default.Visibility
+                                Icons.Filled.Visibility
                             else
-                                Icons.Default.VisibilityOff,
+                                Icons.Filled.VisibilityOff,
                             contentDescription = if (passwordVisible)
                                 "Ocultar contraseña"
                             else
