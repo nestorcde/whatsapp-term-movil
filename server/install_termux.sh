@@ -36,7 +36,7 @@ echo "🧭 Chromium detectado en: $CHROME_BIN"
 "$CHROME_BIN" --version || true
 echo
 
-# 3) Limpiar posibles proxies que rompen web.whatsapp.com
+# 3) Limpiar posibles proxies
 echo "🧹 Limpiando configuración de proxy (env, npm, git)..."
 unset http_proxy https_proxy HTTP_PROXY HTTPS_PROXY ALL_PROXY NO_PROXY no_proxy || true
 npm config delete proxy >/dev/null 2>&1 || true
@@ -44,7 +44,7 @@ npm config delete https-proxy >/dev/null 2>&1 || true
 git config --global --unset http.proxy >/dev/null 2>&1 || true
 git config --global --unset https.proxy >/dev/null 2>&1 || true
 
-# 4) Variables de entorno para instalación/ejecución
+# 4) Entorno
 export PUPPETEER_SKIP_DOWNLOAD=1
 export PUPPETEER_SKIP_CHROMIUM_DOWNLOAD=true
 export PUPPETEER_EXECUTABLE_PATH="$CHROME_BIN"
@@ -52,19 +52,17 @@ export CHROME_PATH="$CHROME_BIN"
 export PUPPETEER_ARGS="--headless=new --no-sandbox --disable-setuid-sandbox --disable-dev-shm-usage --disable-gpu --proxy-server=direct:// --no-proxy-server"
 export SHARP_BACKEND=wasm
 
-# 5) Respaldo y parcheo de package.json (overrides + scripts seguros)
+# 5) Overrides y postinstall seguros
 echo "📝 Preparando overrides de sharp y bloqueo de puppeteer..."
 cp package.json "package.json.bak.$(date +%s)" || true
 node - <<'NODE'
 const fs = require('fs');
 const path = 'package.json';
 const pkg = JSON.parse(fs.readFileSync(path, 'utf8'));
-
 pkg.overrides = Object.assign({}, pkg.overrides, {
   "sharp": "^0.34.4",
   "@wppconnect-team/wppconnect": { "sharp": "^0.34.4" }
 });
-
 pkg.scripts = pkg.scripts || {};
 if (!pkg.scripts.postinstall) {
   pkg.scripts.postinstall = "node -e \"process.env.npm_config_arch='wasm32'\" && npm i --include=optional @img/sharp-wasm32 --no-audit --no-fund || true";
@@ -73,21 +71,21 @@ fs.writeFileSync(path, JSON.stringify(pkg, null, 2));
 console.log('✅ package.json actualizado con overrides y postinstall.');
 NODE
 
-# 6) Limpiar instalación previa de npm
+# 6) Limpieza previa
 echo "🧽 Limpiando node_modules y lockfile..."
 rm -rf node_modules package-lock.json
 
-# 7) Instalar dependencias del proyecto SIN bajar navegador y FORZANDO wasm32
+# 7) Instalar dependencias forzando wasm32
 echo "📥 Instalando dependencias del proyecto (sin descargar Chromium)..."
 export npm_config_arch=wasm32
 export npm_config_force=true
 npm install --no-audit --no-fund
 
-# 7.1) >>> NUEVO: Toolchain TypeScript (para que `tsc` exista siempre) <<<
+# 7.1) Toolchain TypeScript (sin ocultar errores)
 echo "🧩 Instalando toolchain TypeScript (typescript, ts-node, @types/node)..."
-npm i -D typescript ts-node @types/node --no-audit --no-fund || true
+npm i -D typescript ts-node @types/node --no-audit --no-fund
 
-# 8) Remover overrides temporalmente para poder reinstalar Sharp
+# 8) Quitar overrides temporalmente para reinstalar sharp
 echo "🔧 Removiendo overrides temporalmente para reinstalar Sharp..."
 node - <<'NODE'
 const fs = require('fs');
@@ -98,15 +96,15 @@ delete pkg.scripts.postinstall;
 fs.writeFileSync(path, JSON.stringify(pkg, null, 2));
 NODE
 
-# 9) Reinstalar Sharp con runtime WASM
+# 9) Reinstalar sharp WASM
 echo "🖼️ Reinstalando Sharp con runtime WASM para Android ARM64..."
 npm install --cpu=wasm32 sharp --no-audit --no-fund || true
 
-# 10) Asegurar runtime wasm de sharp
+# 10) Asegurar @img/sharp-wasm32
 echo "🖼️ Instalando @img/sharp-wasm32..."
 npm_config_arch=wasm32 npm install --include=optional @img/sharp-wasm32 --no-audit --no-fund || true
 
-# 11) Restaurar overrides en package.json
+# 11) Restaurar overrides
 echo "🔧 Restaurando overrides de Sharp..."
 node - <<'NODE'
 const fs = require('fs');
@@ -119,21 +117,21 @@ pkg.overrides = Object.assign({}, pkg.overrides, {
 fs.writeFileSync(path, JSON.stringify(pkg, null, 2));
 NODE
 
-# 12) Eliminar 'sharp' anidado (si quedó)
+# 12) Borrar sharp anidado (si quedó)
 echo "🧹 Eliminando sharp anidado (si existe) para forzar resolución a la raíz..."
 rm -rf node_modules/@wppconnect-team/wppconnect/node_modules/sharp || true
 
-# 13) Deduplicar dependencias
+# 13) Dedupe
 echo "🧩 Ejecutando dedupe de npm..."
 npm dedupe || true
 
-# 14) Verificar Sharp en WASM
+# 14) Verificar Sharp
 echo "🔎 Verificando Sharp (WASM desde raíz)..."
 node -e "console.log(require('sharp').versions)" || {
   echo "⚠️  Advertencia: no se pudo cargar 'sharp' aún desde raíz."
 }
 
-# 15) Generar config.json de Puppeteer → Chromium
+# 15) config.json Puppeteer → Chromium
 echo "📝 Escribiendo config.json (puppeteerOptions → chromium headless)..."
 cat > config.json <<JSON
 {
@@ -152,25 +150,23 @@ cat > config.json <<JSON
 }
 JSON
 
-# 16) Compilar TypeScript (preferir npx tsc)
+# 16) Compilar TypeScript (siempre con fallback ephemeral)
 echo "🔨 Compilando proyecto..."
 if [ -f tsconfig.json ]; then
-  # si hay tsconfig, garantizamos que `npm run build` use npx tsc
-  node - <<'NODE'
-const fs = require('fs');
-const path = 'package.json';
-const pkg = JSON.parse(fs.readFileSync(path, 'utf8'));
-pkg.scripts = pkg.scripts || {};
-pkg.scripts.build = "npx tsc";
-fs.writeFileSync(path, JSON.stringify(pkg, null, 2));
-NODE
-  npm run build
-else
-  if npm run | grep -qE 'build'; then
-    npm run build
+  # preferimos usar el Typescript local, pero si no está disponible por cualquier motivo,
+  # npx -y -p typescript garantiza un 'tsc' efímero para esta compilación.
+  if [ -x "./node_modules/.bin/tsc" ]; then
+    ./node_modules/.bin/tsc -p .
   else
-    # fallback por si acaso
-    npx tsc -p . || true
+    npx -y -p typescript tsc -p .
+  fi
+else
+  # si hubiera script build definido por el proyecto, lo respetamos;
+  # si falla por ausencia de 'tsc', usamos el ephemeral.
+  if npm run | grep -qE 'build'; then
+    if ! npm run build; then
+      npx -y -p typescript tsc -p . || true
+    fi
   fi
 fi
 
