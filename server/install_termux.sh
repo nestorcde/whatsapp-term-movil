@@ -45,8 +45,6 @@ git config --global --unset http.proxy >/dev/null 2>&1 || true
 git config --global --unset https.proxy >/dev/null 2>&1 || true
 
 # 4) Variables de entorno para instalación/ejecución
-#    - Evitar descarga de navegador por Puppeteer
-#    - Forzar WASM para sharp
 export PUPPETEER_SKIP_DOWNLOAD=1
 export PUPPETEER_SKIP_CHROMIUM_DOWNLOAD=true
 export PUPPETEER_EXECUTABLE_PATH="$CHROME_BIN"
@@ -56,29 +54,21 @@ export SHARP_BACKEND=wasm
 
 # 5) Respaldo y parcheo de package.json (overrides + scripts seguros)
 echo "📝 Preparando overrides de sharp y bloqueo de puppeteer..."
-cp package.json package.json.bak.$(date +%s) || true
-
-# Si no hay jq, ya lo instalamos arriba. Ahora aplicamos overrides y garantizamos scripts.
+cp package.json "package.json.bak.$(date +%s)" || true
 node - <<'NODE'
 const fs = require('fs');
 const path = 'package.json';
 const pkg = JSON.parse(fs.readFileSync(path, 'utf8'));
 
 pkg.overrides = Object.assign({}, pkg.overrides, {
-  // fuerza una sola versión de sharp en todo el árbol
   "sharp": "^0.34.4",
-  "@wppconnect-team/wppconnect": {
-    "sharp": "^0.34.4"
-  }
+  "@wppconnect-team/wppconnect": { "sharp": "^0.34.4" }
 });
 
-// scripts: no tocamos los existentes, solo agregamos postinstall seguro si falta
 pkg.scripts = pkg.scripts || {};
 if (!pkg.scripts.postinstall) {
-  // instala el runtime wasm sin romper si ya existe
   pkg.scripts.postinstall = "node -e \"process.env.npm_config_arch='wasm32'\" && npm i --include=optional @img/sharp-wasm32 --no-audit --no-fund || true";
 }
-
 fs.writeFileSync(path, JSON.stringify(pkg, null, 2));
 console.log('✅ package.json actualizado con overrides y postinstall.');
 NODE
@@ -87,12 +77,15 @@ NODE
 echo "🧽 Limpiando node_modules y lockfile..."
 rm -rf node_modules package-lock.json
 
-# 7) Instalar dependencias del proyecto SIN bajar navegador y SIN sharp primero
+# 7) Instalar dependencias del proyecto SIN bajar navegador y FORZANDO wasm32
 echo "📥 Instalando dependencias del proyecto (sin descargar Chromium)..."
-# Forzamos arch wasm32 durante la instalación para que sharp se resuelva a wasm
 export npm_config_arch=wasm32
 export npm_config_force=true
 npm install --no-audit --no-fund
+
+# 7.1) >>> NUEVO: Toolchain TypeScript (para que `tsc` exista siempre) <<<
+echo "🧩 Instalando toolchain TypeScript (typescript, ts-node, @types/node)..."
+npm i -D typescript ts-node @types/node --no-audit --no-fund || true
 
 # 8) Remover overrides temporalmente para poder reinstalar Sharp
 echo "🔧 Removiendo overrides temporalmente para reinstalar Sharp..."
@@ -105,11 +98,11 @@ delete pkg.scripts.postinstall;
 fs.writeFileSync(path, JSON.stringify(pkg, null, 2));
 NODE
 
-# 9) Reinstalar Sharp específicamente con --cpu=wasm32 para forzar runtime correcto
+# 9) Reinstalar Sharp con runtime WASM
 echo "🖼️ Reinstalando Sharp con runtime WASM para Android ARM64..."
 npm install --cpu=wasm32 sharp --no-audit --no-fund || true
 
-# 10) Asegurar runtime wasm de sharp (@img/sharp-wasm32)
+# 10) Asegurar runtime wasm de sharp
 echo "🖼️ Instalando @img/sharp-wasm32..."
 npm_config_arch=wasm32 npm install --include=optional @img/sharp-wasm32 --no-audit --no-fund || true
 
@@ -119,22 +112,18 @@ node - <<'NODE'
 const fs = require('fs');
 const path = 'package.json';
 const pkg = JSON.parse(fs.readFileSync(path, 'utf8'));
-
 pkg.overrides = Object.assign({}, pkg.overrides, {
   "sharp": "^0.34.4",
-  "@wppconnect-team/wppconnect": {
-    "sharp": "^0.34.4"
-  }
+  "@wppconnect-team/wppconnect": { "sharp": "^0.34.4" }
 });
-
 fs.writeFileSync(path, JSON.stringify(pkg, null, 2));
 NODE
 
-# 12) Eliminar 'sharp' anidados que rompan (si quedaron instalados debajo de wppconnect)
+# 12) Eliminar 'sharp' anidado (si quedó)
 echo "🧹 Eliminando sharp anidado (si existe) para forzar resolución a la raíz..."
 rm -rf node_modules/@wppconnect-team/wppconnect/node_modules/sharp || true
 
-# 13) Deduplicar dependencias para garantizar única instancia de sharp
+# 13) Deduplicar dependencias
 echo "🧩 Ejecutando dedupe de npm..."
 npm dedupe || true
 
@@ -144,7 +133,7 @@ node -e "console.log(require('sharp').versions)" || {
   echo "⚠️  Advertencia: no se pudo cargar 'sharp' aún desde raíz."
 }
 
-# 15) Crear/actualizar config.json con Puppeteer apuntando a Chromium
+# 15) Generar config.json de Puppeteer → Chromium
 echo "📝 Escribiendo config.json (puppeteerOptions → chromium headless)..."
 cat > config.json <<JSON
 {
@@ -163,13 +152,25 @@ cat > config.json <<JSON
 }
 JSON
 
-# 16) Compilar TypeScript (si existe script build o tsconfig.json)
+# 16) Compilar TypeScript (preferir npx tsc)
 echo "🔨 Compilando proyecto..."
-if npm run | grep -qE 'build'; then
+if [ -f tsconfig.json ]; then
+  # si hay tsconfig, garantizamos que `npm run build` use npx tsc
+  node - <<'NODE'
+const fs = require('fs');
+const path = 'package.json';
+const pkg = JSON.parse(fs.readFileSync(path, 'utf8'));
+pkg.scripts = pkg.scripts || {};
+pkg.scripts.build = "npx tsc";
+fs.writeFileSync(path, JSON.stringify(pkg, null, 2));
+NODE
   npm run build
 else
-  if [ -f tsconfig.json ]; then
-    npx tsc -p .
+  if npm run | grep -qE 'build'; then
+    npm run build
+  else
+    # fallback por si acaso
+    npx tsc -p . || true
   fi
 fi
 
