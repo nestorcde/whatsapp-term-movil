@@ -41,6 +41,15 @@ data class UserDto(
 )
 
 
+data class CampaignConfigDto(
+    @SerializedName("segundosDesde")
+    val segundosDesde: Int,
+    @SerializedName("segundosHasta")
+    val segundosHasta: Int,
+    @SerializedName("cantidadMaxDia")
+    val cantidadMaxDia: Int
+)
+
 data class CampaignDto(
     @SerializedName("id")
     val id: Int,
@@ -85,7 +94,11 @@ data class CampaignDto(
     @SerializedName("pendientesContactos")
     val pendientesContactos: Int? = null,
     @SerializedName("fallidosContactos")
-    val fallidosContactos: Int? = null
+    val fallidosContactos: Int? = null,
+
+    // Configuración de envío desde GENTN000
+    @SerializedName("config")
+    val config: CampaignConfigDto? = null
 )
 
 data class CampaignTotalsDto(

@@ -1,5 +1,11 @@
 package com.whatsappbulk.sender.domain.model
 
+data class CampaignConfig(
+    val segundosDesde: Int,
+    val segundosHasta: Int,
+    val cantidadMaxDia: Int
+)
+
 data class Campaign(
     val id: Int,
     val oficina: String,
@@ -11,7 +17,8 @@ data class Campaign(
     val tieneImagen2: Boolean,
     val tieneImagen3: Boolean,
     val fechaCreacion: String,
-    val totales: CampaignTotals
+    val totales: CampaignTotals,
+    val config: CampaignConfig?
 ) {
     val cantidadMensajes: Int
         get() = listOfNotNull(mensaje, mensaje2, mensaje3).count { it.isNotBlank() }

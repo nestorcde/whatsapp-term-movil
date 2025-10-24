@@ -89,6 +89,9 @@ fun CampaignDetailsScreen(
                         image1 = uiState.image1,
                         image2 = uiState.image2,
                         image3 = uiState.image3,
+                        segundosDesde = uiState.segundosDesde,
+                        segundosHasta = uiState.segundosHasta,
+                        cantidadMaxDia = uiState.cantidadMaxDia,
                         onQuantityChange = viewModel::onQuantityChange,
                         onStart = { viewModel.onStartSend { id, qty -> onStartSend(id, qty) } },
                         onStartBackground = {
@@ -116,6 +119,9 @@ private fun DetailsContent(
     quantityText: String,
     maxQuantity: Int,
     inputError: String?,
+    segundosDesde: Int,
+    segundosHasta: Int,
+    cantidadMaxDia: Int,
     onQuantityChange: (String) -> Unit,
     onStart: () -> Unit,
     onStartBackground: () -> Unit,
@@ -157,7 +163,7 @@ private fun DetailsContent(
             Card { Column(Modifier.padding(16.dp)) {
                 Text("Configuración de envío", style = MaterialTheme.typography.titleMedium)
                 Spacer(Modifier.height(8.dp))
-                Text("Máximo permitido: ${maxQuantity} (tope app: 50)")
+                Text("Máximo permitido: ${maxQuantity} (límite diario: ${cantidadMaxDia})")
                 Spacer(Modifier.height(8.dp))
                 Column(modifier = Modifier.fillMaxWidth()) {
                     OutlinedTextField(
@@ -181,7 +187,7 @@ private fun DetailsContent(
                     }
                 }
                 Spacer(Modifier.height(8.dp))
-                Text("Intervalo entre mensajes: 20-50s", style = MaterialTheme.typography.bodySmall)
+                Text("Intervalo entre mensajes: ${segundosDesde}-${segundosHasta}s", style = MaterialTheme.typography.bodySmall)
             }}
         }
     }

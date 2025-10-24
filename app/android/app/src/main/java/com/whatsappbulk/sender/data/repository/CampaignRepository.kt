@@ -3,6 +3,7 @@ package com.whatsappbulk.sender.data.repository
 import com.whatsappbulk.sender.data.remote.api.CampaignApi
 import com.whatsappbulk.sender.data.remote.dto.UpdateMessageStatusRequest
 import com.whatsappbulk.sender.domain.model.Campaign
+import com.whatsappbulk.sender.domain.model.CampaignConfig
 import com.whatsappbulk.sender.domain.model.CampaignDetail
 import com.whatsappbulk.sender.domain.model.CampaignTotals
 import com.whatsappbulk.sender.domain.model.CampaignContact
@@ -60,7 +61,14 @@ class CampaignRepository @Inject constructor(
                                 pendientes = pendientes,
                                 enviados = enviados,
                                 fallidos = fallidos
-                            )
+                            ),
+                            config = dto.config?.let {
+                                CampaignConfig(
+                                    segundosDesde = it.segundosDesde,
+                                    segundosHasta = it.segundosHasta,
+                                    cantidadMaxDia = it.cantidadMaxDia
+                                )
+                            }
                         )
                     }
                     Result.Success(campaigns)
@@ -193,7 +201,14 @@ class CampaignRepository @Inject constructor(
                                 pendientes = pendientes,
                                 enviados = enviados,
                                 fallidos = fallidos
-                            )
+                            ),
+                            config = dto.config?.let {
+                                CampaignConfig(
+                                    segundosDesde = it.segundosDesde,
+                                    segundosHasta = it.segundosHasta,
+                                    cantidadMaxDia = it.cantidadMaxDia
+                                )
+                            }
                         )
                     }
                     Result.Success(campaigns)

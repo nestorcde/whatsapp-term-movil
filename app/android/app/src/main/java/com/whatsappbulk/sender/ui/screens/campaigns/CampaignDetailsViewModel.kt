@@ -23,7 +23,10 @@ data class CampaignDetailsUiState(
     val inputError: String? = null,
     val image1: ByteArray? = null,
     val image2: ByteArray? = null,
-    val image3: ByteArray? = null
+    val image3: ByteArray? = null,
+    val segundosDesde: Int = 20,
+    val segundosHasta: Int = 40,
+    val cantidadMaxDia: Int = 200
 )
 
 @HiltViewModel
@@ -53,14 +56,22 @@ class CampaignDetailsViewModel @Inject constructor(
                 is Result.Success -> {
                     val full = result.data
                     val pending = full.contacts.count { it.estado == null || it.estado == "PEN" }
-                    val max = minOf(50, pending)
+
+                    // Usar configuración del backend o valores por defecto
+                    val config = full.summary.config
+                    val maxDiario = config?.cantidadMaxDia ?: 200
+                    val max = minOf(50, pending, maxDiario)
+
                     _uiState.update {
                         it.copy(
                             isLoading = false,
                             campaign = full,
                             maxQuantity = max,
                             quantityText = if (it.quantityText.isBlank()) "10" else it.quantityText,
-                            inputError = null
+                            inputError = null,
+                            segundosDesde = config?.segundosDesde ?: 20,
+                            segundosHasta = config?.segundosHasta ?: 40,
+                            cantidadMaxDia = config?.cantidadMaxDia ?: 200
                         )
                     }
 
