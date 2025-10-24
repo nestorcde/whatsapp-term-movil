@@ -115,6 +115,25 @@ app.listen(PORT, async () => {
   } catch (error) {
     logger.debug('Error al intentar recuperar sesión', error);
   }
+
+  // Enviar notificación en Termux cuando el servidor esté listo
+  if (process.platform === 'android' || process.env.TERMUX_VERSION) {
+    try {
+      const { exec } = require('child_process');
+      exec(
+        `termux-notification --title "WhatsApp Server" --content "Servidor iniciado en puerto ${PORT}" --id whatsapp-server --priority high`,
+        (error: any) => {
+          if (error) {
+            logger.debug('No se pudo enviar notificación de Termux:', error.message);
+          } else {
+            logger.debug('Notificación de Termux enviada');
+          }
+        }
+      );
+    } catch (error) {
+      logger.debug('Error al intentar enviar notificación:', error);
+    }
+  }
 });
 
 // Manejo graceful de cierre

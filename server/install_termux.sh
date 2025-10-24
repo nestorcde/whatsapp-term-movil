@@ -17,7 +17,7 @@ fi
 echo "📦 Instalando/actualizando paquetes del sistema (Termux)..."
 yes | pkg update -y >/dev/null 2>&1 || true
 yes | pkg install -y x11-repo >/dev/null 2>&1 || true
-yes | pkg install -y chromium fontconfig ttf-dejavu git nodejs termux-auth curl jq >/dev/null 2>&1 || true
+yes | pkg install -y chromium fontconfig ttf-dejavu git nodejs termux-auth termux-api curl jq >/dev/null 2>&1 || true
 
 # 2) Detectar ruta de Chromium (Termux)
 CHROME_BIN="/data/data/com.termux/files/usr/bin/chromium-browser"
