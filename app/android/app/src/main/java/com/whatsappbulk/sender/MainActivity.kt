@@ -1,4 +1,4 @@
-package com.whatsappbulk.sender
+﻿package com.whatsappbulk.sender
 
 import android.os.Bundle
 import androidx.activity.ComponentActivity
@@ -13,6 +13,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.whatsappbulk.sender.ui.screens.campaigns.CampaignListScreen
 import com.whatsappbulk.sender.ui.screens.login.LoginScreen
 import com.whatsappbulk.sender.ui.screens.login.LoginViewModel
 import com.whatsappbulk.sender.ui.screens.whatsapp.WhatsAppSessionScreen
@@ -41,13 +42,19 @@ class MainActivity : ComponentActivity() {
                                 onUsernameChange = loginViewModel::onUsernameChange,
                                 onPasswordChange = loginViewModel::onPasswordChange,
                                 onLoginClick = loginViewModel::login,
-                                onNavigateToWhatsApp = {
-                                    currentScreen = "whatsapp"
-                                }
+                                onNavigateToWhatsApp = { currentScreen = "whatsapp" }
                             )
                         }
                         "whatsapp" -> {
-                            WhatsAppSessionScreen()
+                            WhatsAppSessionScreen(
+                                onOpenCampaigns = { currentScreen = "campaigns" }
+                            )
+                        }
+                        "campaigns" -> {
+                            CampaignListScreen(
+                                onCampaignClick = { /* navigate to details if needed */ },
+                                onBackClick = { currentScreen = "whatsapp" }
+                            )
                         }
                     }
                 }

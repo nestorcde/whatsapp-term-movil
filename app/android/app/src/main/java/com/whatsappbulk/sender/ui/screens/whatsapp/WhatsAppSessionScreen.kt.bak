@@ -38,7 +38,7 @@ import com.whatsappbulk.sender.ui.theme.WhatsAppBulkSenderTheme
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun WhatsAppSessionScreen(
-    viewModel: WhatsAppViewModel = hiltViewModel(, onOpenCampaigns: () -> Unit)
+    viewModel: WhatsAppViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
 
@@ -76,7 +76,7 @@ fun WhatsAppSessionScreen(
                         modifier = Modifier.padding(32.dp)
                     )
                     Text(
-                        text = ""+com.whatsappbulk.sender.R.string.verifying_session+"",
+                        text = "Verificando sesiÃ³n existente...",
                         style = MaterialTheme.typography.bodyMedium
                     )
                 }
@@ -117,7 +117,7 @@ fun WhatsAppSessionScreen(
                             )
                         }
                         SessionStatus.CONNECTED -> {
-                            ConnectedContent(\n                                onOpenCampaigns = onOpenCampaigns
+                            ConnectedContent(
                                 testPhone = uiState.testPhone,
                                 onTestPhoneChange = viewModel::onTestPhoneChange,
                                 onSendTest = viewModel::sendTestMessage,
@@ -394,7 +394,7 @@ fun LinkCodeContent(
                     modifier = Modifier.weight(1f),
                     enabled = !isLoading
                 ) {
-                    Text(""+com.whatsappbulk.sender.R.string.new_code+"")
+                    Text("Nuevo CÃ³digo")
                 }
             }
 
@@ -413,7 +413,7 @@ fun LinkCodeContent(
 @Composable
 fun ConnectedContent(
     testPhone: String,
-    onTestPhoneChange: (String, onOpenCampaigns: () -> Unit) -> Unit,
+    onTestPhoneChange: (String) -> Unit,
     onSendTest: () -> Unit,
     isSending: Boolean,
     testStatus: String?,
@@ -509,10 +509,6 @@ fun ConnectedContent(
     ) {
         Text("Cerrar SesiÃ³n")
     }
-    Spacer(modifier = Modifier.height(12.dp))
-    Button(onClick = onOpenCampaigns, modifier = Modifier.fillMaxWidth()) {
-        Text("Ir a Campañas")
-    }
 }
 
 @Preview(showBackground = true)
@@ -522,9 +518,5 @@ fun WhatsAppSessionScreenPreview() {
         WhatsAppSessionScreen()
     }
 }
-
-
-
-
 
 
