@@ -3,11 +3,12 @@ package com.whatsappbulk.sender.data.repository
 import com.whatsappbulk.sender.data.remote.api.CampaignApi
 import com.whatsappbulk.sender.data.remote.dto.UpdateMessageStatusRequest
 import com.whatsappbulk.sender.domain.model.Campaign
-import com.whatsappbulk.sender.domain.model.CampaignDetail
-import com.whatsappbulk.sender.domain.model.CampaignTotals
+import com.whatsappbulk.sender.domain.model.CampaignConfig
 import com.whatsappbulk.sender.domain.model.CampaignContact
+import com.whatsappbulk.sender.domain.model.CampaignDetail
 import com.whatsappbulk.sender.domain.model.CampaignFull
 import com.whatsappbulk.sender.domain.model.CampaignSummary
+import com.whatsappbulk.sender.domain.model.CampaignTotals
 import com.whatsappbulk.sender.domain.model.Result
 import com.whatsappbulk.sender.domain.repository.ICampaignRepository
 import javax.inject.Inject
@@ -60,7 +61,14 @@ class CampaignRepository @Inject constructor(
                                 pendientes = pendientes,
                                 enviados = enviados,
                                 fallidos = fallidos
-                            )
+                            ),
+                            config = dto.config?.let {
+                                CampaignConfig(
+                                    segundosDesde = it.segundosDesde,
+                                    segundosHasta = it.segundosHasta,
+                                    cantidadMaxDia = it.cantidadMaxDia
+                                )
+                            }
                         )
                     }
                     Result.Success(campaigns)
@@ -88,7 +96,7 @@ class CampaignRepository @Inject constructor(
                     val details = body.data.map { dto ->
                         CampaignDetail(
                             secuencia = dto.secuencia,
-                            socioNumero = dto.socioNumero,
+                            socioNumero = dto.numeroSocio.toString(),
                             nombre = dto.nombre,
                             telefono = dto.telefono,
                             mensajeIndividual = dto.mensajeIndividual,
@@ -127,6 +135,24 @@ class CampaignRepository @Inject constructor(
             }
         } catch (e: Exception) {
             Result.Error(e.message ?: "Error al obtener imagen")
+        }
+    }
+
+    override suspend fun getMessagesSentToday(): Result<Int> {
+        return try {
+            val response = campaignApi.getMessagesSentToday()
+            if (response.isSuccessful) {
+                val body = response.body()
+                if (body?.success == true && body.data != null) {
+                    Result.Success(body.data.total)
+                } else {
+                    Result.Error(body?.error ?: "Error obteniendo mensajes enviados hoy")
+                }
+            } else {
+                Result.Error("Error: ${response.code()}")
+            }
+        } catch (e: Exception) {
+            Result.Error(e.message ?: "Error de red")
         }
     }
 
@@ -193,7 +219,14 @@ class CampaignRepository @Inject constructor(
                                 pendientes = pendientes,
                                 enviados = enviados,
                                 fallidos = fallidos
-                            )
+                            ),
+                            config = dto.config?.let {
+                                CampaignConfig(
+                                    segundosDesde = it.segundosDesde,
+                                    segundosHasta = it.segundosHasta,
+                                    cantidadMaxDia = it.cantidadMaxDia
+                                )
+                            }
                         )
                     }
                     Result.Success(campaigns)
@@ -225,6 +258,7 @@ class CampaignRepository @Inject constructor(
                 val contacts = body.data.map { dto ->
                     CampaignContact(
                         secuencia = dto.secuencia,
+                        numeroSocio = dto.numeroSocio,
                         nombre = dto.nombre,
                         telefono = dto.telefono,
                         estado = dto.estado,

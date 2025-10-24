@@ -23,7 +23,12 @@ data class CampaignDetailsUiState(
     val inputError: String? = null,
     val image1: ByteArray? = null,
     val image2: ByteArray? = null,
-    val image3: ByteArray? = null
+    val image3: ByteArray? = null,
+    val segundosDesde: Int = 20,
+    val segundosHasta: Int = 40,
+    val cantidadMaxDia: Int = 200,
+    val mensajesEnviadosHoy: Int = 0,
+    val cuotaDisponible: Int = 200
 )
 
 @HiltViewModel
@@ -49,18 +54,36 @@ class CampaignDetailsViewModel @Inject constructor(
 
         viewModelScope.launch {
             _uiState.update { it.copy(isLoading = true, error = null) }
+
+            // Obtener mensajes enviados hoy
+            val sentToday = when (val sentResult = campaignRepository.getMessagesSentToday()) {
+                is Result.Success -> sentResult.data
+                else -> 0
+            }
+
             when (val result = campaignRepository.getCampaignFull(campaignId)) {
                 is Result.Success -> {
                     val full = result.data
                     val pending = full.contacts.count { it.estado == null || it.estado == "PEN" }
-                    val max = minOf(50, pending)
+
+                    // Usar configuración del backend o valores por defecto
+                    val config = full.summary.config
+                    val maxDiario = config?.cantidadMaxDia ?: 200
+                    val cuotaDisp = maxOf(0, maxDiario - sentToday)
+                    val max = minOf(50, pending, cuotaDisp)
+
                     _uiState.update {
                         it.copy(
                             isLoading = false,
                             campaign = full,
                             maxQuantity = max,
                             quantityText = if (it.quantityText.isBlank()) "10" else it.quantityText,
-                            inputError = null
+                            inputError = null,
+                            segundosDesde = config?.segundosDesde ?: 20,
+                            segundosHasta = config?.segundosHasta ?: 40,
+                            cantidadMaxDia = maxDiario,
+                            mensajesEnviadosHoy = sentToday,
+                            cuotaDisponible = cuotaDisp
                         )
                     }
 

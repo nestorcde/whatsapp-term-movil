@@ -30,6 +30,12 @@ interface ICampaignRepository {
     suspend fun getCampaignImage(campaignId: Int, imageNumber: Int): Result<ByteArray?>
 
     /**
+     * Obtener total de mensajes enviados hoy (todas las campañas del usuario)
+     * @return Total de mensajes enviados hoy
+     */
+    suspend fun getMessagesSentToday(): Result<Int>
+
+    /**
      * Actualizar estado de un mensaje enviado
      * @param campaignId ID de la campaña
      * @param secuencia Secuencia del mensaje

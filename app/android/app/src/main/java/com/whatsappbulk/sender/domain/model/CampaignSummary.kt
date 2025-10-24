@@ -11,6 +11,7 @@ data class CampaignSummary(
     val tieneImagen2: Boolean,
     val tieneImagen3: Boolean,
     val fecha: String,
-    val totales: CampaignTotals
+    val totales: CampaignTotals,
+    val config: CampaignConfig?
 )
 

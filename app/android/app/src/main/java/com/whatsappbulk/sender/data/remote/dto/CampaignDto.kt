@@ -41,6 +41,22 @@ data class UserDto(
 )
 
 
+data class CampaignConfigDto(
+    @SerializedName("segundosDesde")
+    val segundosDesde: Int,
+    @SerializedName("segundosHasta")
+    val segundosHasta: Int,
+    @SerializedName("cantidadMaxDia")
+    val cantidadMaxDia: Int
+)
+
+data class MessagesSentTodayDto(
+    @SerializedName("total")
+    val total: Int,
+    @SerializedName("fecha")
+    val fecha: String
+)
+
 data class CampaignDto(
     @SerializedName("id")
     val id: Int,
@@ -85,7 +101,11 @@ data class CampaignDto(
     @SerializedName("pendientesContactos")
     val pendientesContactos: Int? = null,
     @SerializedName("fallidosContactos")
-    val fallidosContactos: Int? = null
+    val fallidosContactos: Int? = null,
+
+    // Configuración de envío desde GENTN000
+    @SerializedName("config")
+    val config: CampaignConfigDto? = null
 )
 
 data class CampaignTotalsDto(
@@ -102,8 +122,8 @@ data class CampaignTotalsDto(
 data class CampaignDetailDto(
     @SerializedName("secuencia")
     val secuencia: Int,
-    @SerializedName("socioNumero")
-    val socioNumero: String,
+    @SerializedName("numeroSocio")
+    val numeroSocio: Int,
     @SerializedName("nombre")
     val nombre: String,
     @SerializedName("telefono")

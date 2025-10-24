@@ -31,6 +31,12 @@ interface CampaignApi {
     suspend fun getCampaigns(): Response<ApiResponse<List<CampaignDto>>>
 
     /**
+     * Obtener total de mensajes enviados hoy
+     */
+    @GET("/api/campaigns/messages-sent-today")
+    suspend fun getMessagesSentToday(): Response<ApiResponse<MessagesSentTodayDto>>
+
+    /**
      * Obtener detalles de una campaña específica
      * @param campaignId ID de la campaña
      * @param limit Límite de contactos a devolver (opcional)
