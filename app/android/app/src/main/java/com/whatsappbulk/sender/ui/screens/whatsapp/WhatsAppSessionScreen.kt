@@ -1,4 +1,4 @@
-package com.whatsappbulk.sender.ui.screens.whatsapp
+﻿package com.whatsappbulk.sender.ui.screens.whatsapp
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
@@ -47,7 +47,7 @@ fun WhatsAppSessionScreen(
             TopAppBar(
                 title = {
                     Text(
-                        text = "Sesión de WhatsApp",
+                        text = "SesiÃ³n de WhatsApp",
                         style = MaterialTheme.typography.titleLarge
                     )
                 },
@@ -64,7 +64,7 @@ fun WhatsAppSessionScreen(
                 .padding(paddingValues)
         ) {
             if (uiState.isChecking) {
-                // Estado de verificación inicial
+                // Estado de verificaciÃ³n inicial
                 Column(
                     modifier = Modifier
                         .fillMaxSize()
@@ -76,7 +76,7 @@ fun WhatsAppSessionScreen(
                         modifier = Modifier.padding(32.dp)
                     )
                     Text(
-                        text = "Verificando sesión existente...",
+                        text = "Verificando sesiÃ³n existente...",
                         style = MaterialTheme.typography.bodyMedium
                     )
                 }
@@ -97,7 +97,7 @@ fun WhatsAppSessionScreen(
 
                     Spacer(modifier = Modifier.height(24.dp))
 
-                    // Contenido según el estado de la sesión
+                    // Contenido segÃºn el estado de la sesiÃ³n
                     when (uiState.sessionStatus) {
                         SessionStatus.DISCONNECTED -> {
                             DisconnectedContent(
@@ -189,7 +189,7 @@ fun StatusCard(
                     text = when (status) {
                         SessionStatus.DISCONNECTED -> "Desconectado"
                         SessionStatus.CONNECTING -> "Conectando..."
-                        SessionStatus.LINK_CODE_READY -> "Código de vinculación generado"
+                        SessionStatus.LINK_CODE_READY -> "CÃ³digo de vinculaciÃ³n generado"
                         SessionStatus.CONNECTED -> "Conectado"
                         else -> "Estado desconocido"
                     },
@@ -238,10 +238,10 @@ fun DisconnectedContent(
                 modifier = Modifier.padding(bottom = 8.dp)
             )
             Text(
-                text = "1. Ingresa tu número con código de país\n" +
-                       "2. Recibirás un código de 8 dígitos en WhatsApp\n" +
+                text = "1. Ingresa tu nÃºmero con cÃ³digo de paÃ­s\n" +
+                       "2. RecibirÃ¡s un cÃ³digo de 8 dÃ­gitos en WhatsApp\n" +
                        "3. Verifica que coincida y confirma\n" +
-                       "4. ¡Listo para enviar mensajes!",
+                       "4. Â¡Listo para enviar mensajes!",
                 style = MaterialTheme.typography.bodyMedium
             )
         }
@@ -252,12 +252,12 @@ fun DisconnectedContent(
     OutlinedTextField(
         value = phoneNumber,
         onValueChange = onPhoneNumberChange,
-        label = { Text("Número de teléfono") },
-        placeholder = { Text("595973159937") },
+        label = { Text("NÃºmero de telÃ©fono") },
+        placeholder = { Text("595973123456") },
         leadingIcon = {
             Icon(
                 imageVector = Icons.Default.Phone,
-                contentDescription = "Teléfono"
+                contentDescription = "TelÃ©fono"
             )
         },
         singleLine = true,
@@ -267,7 +267,7 @@ fun DisconnectedContent(
             keyboardType = KeyboardType.Phone
         ),
         supportingText = {
-            Text("Formato: {códigoPaís}{número} sin + ni espacios")
+            Text("Formato: {cÃ³digoPaÃ­s}{nÃºmero} sin + ni espacios")
         }
     )
 
@@ -287,7 +287,7 @@ fun DisconnectedContent(
             )
         } else {
             Text(
-                text = "Iniciar Sesión",
+                text = "Iniciar SesiÃ³n",
                 style = MaterialTheme.typography.titleMedium
             )
         }
@@ -312,17 +312,17 @@ fun LinkCodeContent(
                     .padding(bottom = 16.dp)
             )
             Text(
-                text = "Generando código de vinculación...",
+                text = "Generando cÃ³digo de vinculaciÃ³n...",
                 style = MaterialTheme.typography.bodyLarge
             )
         } else {
             Text(
-                text = "Código de Vinculación",
+                text = "CÃ³digo de VinculaciÃ³n",
                 style = MaterialTheme.typography.headlineSmall,
                 modifier = Modifier.padding(bottom = 16.dp)
             )
 
-            // Mostrar código grande
+            // Mostrar cÃ³digo grande
             Card(
                 modifier = Modifier.fillMaxWidth(),
                 colors = CardDefaults.cardColors(
@@ -366,10 +366,10 @@ fun LinkCodeContent(
                         modifier = Modifier.padding(bottom = 8.dp)
                     )
                     Text(
-                        text = "1. Abre WhatsApp en tu teléfono\n" +
+                        text = "1. Abre WhatsApp en tu telÃ©fono\n" +
                                "2. Ve a Dispositivos Vinculados\n" +
-                               "3. Verifica que el código coincida\n" +
-                               "4. Confirma la vinculación",
+                               "3. Verifica que el cÃ³digo coincida\n" +
+                               "4. Confirma la vinculaciÃ³n",
                         style = MaterialTheme.typography.bodyMedium
                     )
                 }
@@ -377,7 +377,7 @@ fun LinkCodeContent(
 
             Spacer(modifier = Modifier.height(24.dp))
 
-            // Botones de acción
+            // Botones de acciÃ³n
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(12.dp)
@@ -394,14 +394,14 @@ fun LinkCodeContent(
                     modifier = Modifier.weight(1f),
                     enabled = !isLoading
                 ) {
-                    Text("Nuevo Código")
+                    Text("Nuevo CÃ³digo")
                 }
             }
 
             Spacer(modifier = Modifier.height(8.dp))
 
             Text(
-                text = "Si el código expiró, genera uno nuevo",
+                text = "Si el cÃ³digo expirÃ³, genera uno nuevo",
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 textAlign = TextAlign.Center
@@ -420,7 +420,7 @@ fun ConnectedContent(
     onCloseSession: () -> Unit
 ) {
     Text(
-        text = "WhatsApp Conectado ✅",
+        text = "WhatsApp Conectado âœ…",
         style = MaterialTheme.typography.headlineSmall,
         color = MaterialTheme.colorScheme.primary,
         modifier = Modifier.padding(bottom = 16.dp)
@@ -445,12 +445,12 @@ fun ConnectedContent(
             OutlinedTextField(
                 value = testPhone,
                 onValueChange = onTestPhoneChange,
-                label = { Text("Número de destino") },
-                placeholder = { Text("595973159937") },
+                label = { Text("NÃºmero de destino") },
+                placeholder = { Text("595973123456") },
                 leadingIcon = {
                     Icon(
                         imageVector = Icons.Default.Phone,
-                        contentDescription = "Teléfono"
+                        contentDescription = "TelÃ©fono"
                     )
                 },
                 singleLine = true,
@@ -507,7 +507,7 @@ fun ConnectedContent(
         onClick = onCloseSession,
         modifier = Modifier.fillMaxWidth()
     ) {
-        Text("Cerrar Sesión")
+        Text("Cerrar SesiÃ³n")
     }
 }
 
@@ -518,3 +518,4 @@ fun WhatsAppSessionScreenPreview() {
         WhatsAppSessionScreen()
     }
 }
+

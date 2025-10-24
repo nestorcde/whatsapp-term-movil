@@ -15,6 +15,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusDirection
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.text.input.ImeAction
+import androidx.compose.ui.text.input.KeyboardCapitalization
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
@@ -91,6 +92,7 @@ fun LoginScreen(
                     .padding(bottom = 16.dp),
                 enabled = !uiState.isLoading,
                 keyboardOptions = KeyboardOptions(
+                    capitalization = KeyboardCapitalization.Characters,
                     imeAction = ImeAction.Next
                 ),
                 keyboardActions = KeyboardActions(

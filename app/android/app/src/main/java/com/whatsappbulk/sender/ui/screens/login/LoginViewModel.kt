@@ -22,7 +22,7 @@ class LoginViewModel @Inject constructor(
 
     fun onUsernameChange(username: String) {
         _uiState.update { it.copy(
-            username = username,
+            username = username.uppercase(),
             usernameError = null,
             errorMessage = null
         ) }
