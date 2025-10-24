@@ -120,13 +120,14 @@ fun WhatsAppSessionScreen(
                             )
                         }
                         SessionStatus.CONNECTED -> {
-                            ConnectedContent(\n                                onOpenCampaigns = onOpenCampaigns
+                            ConnectedContent(
                                 testPhone = uiState.testPhone,
                                 onTestPhoneChange = viewModel::onTestPhoneChange,
                                 onSendTest = viewModel::sendTestMessage,
                                 isSending = uiState.isSendingTest,
                                 testStatus = uiState.testMessageStatus,
-                                onCloseSession = viewModel::closeSession
+                                onCloseSession = viewModel::closeSession,
+                                onOpenCampaigns = onOpenCampaigns
                             )
                         }
                         else -> {}
@@ -192,7 +193,7 @@ fun StatusCard(
                     text = when (status) {
                         SessionStatus.DISCONNECTED -> "Desconectado"
                         SessionStatus.CONNECTING -> "Conectando..."
-                        SessionStatus.LINK_CODE_READY -> "CÃ³digo de vinculaciÃ³n generado"
+                        SessionStatus.LINK_CODE_READY -> "Código de vinculación generado"
                         SessionStatus.CONNECTED -> "Conectado"
                         else -> "Estado desconocido"
                     },
@@ -397,17 +398,18 @@ fun LinkCodeContent(
                     modifier = Modifier.weight(1f),
                     enabled = !isLoading
                 ) {
-                    Text(""+com.whatsappbulk.sender.R.string.new_code+"")
+                    Text(stringResource(id = com.whatsappbulk.sender.R.string.new_code))
                 }
             }
 
-                text = stringResource(id = com.whatsappbulk.sender.R.string.code_expired_hint),
+            Spacer(modifier = Modifier.height(16.dp))
 
             Text(
-                text = "Si el cÃ³digo expirÃ³, genera uno nuevo",
+                text = stringResource(id = com.whatsappbulk.sender.R.string.code_expired_hint),
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
-                textAlign = TextAlign.Center
+                textAlign = TextAlign.Center,
+                modifier = Modifier.fillMaxWidth()
             )
         }
     }
@@ -416,14 +418,15 @@ fun LinkCodeContent(
 @Composable
 fun ConnectedContent(
     testPhone: String,
-    onTestPhoneChange: (String, onOpenCampaigns: () -> Unit) -> Unit,
+    onTestPhoneChange: (String) -> Unit,
     onSendTest: () -> Unit,
     isSending: Boolean,
     testStatus: String?,
-    onCloseSession: () -> Unit
+    onCloseSession: () -> Unit,
+    onOpenCampaigns: () -> Unit
 ) {
     Text(
-        text = "WhatsApp Conectado âœ…",
+        text = "WhatsApp Conectado",
         style = MaterialTheme.typography.headlineSmall,
         color = MaterialTheme.colorScheme.primary,
         modifier = Modifier.padding(bottom = 16.dp)
@@ -445,15 +448,15 @@ fun ConnectedContent(
                 modifier = Modifier.padding(bottom = 12.dp)
             )
 
+            OutlinedTextField(
+                value = testPhone,
+                onValueChange = onTestPhoneChange,
                 label = { Text(stringResource(id = com.whatsappbulk.sender.R.string.phone_label)) },
                 placeholder = { Text(stringResource(id = com.whatsappbulk.sender.R.string.phone_placeholder)) },
-                onValueChange = onTestPhoneChange,
-                label = { Text("NÃºmero de destino") },
-                placeholder = { Text("595973123456") },
                 leadingIcon = {
                     Icon(
                         imageVector = Icons.Default.Phone,
-                        contentDescription = "TelÃ©fono"
+                        contentDescription = "Teléfono"
                     )
                 },
                 singleLine = true,
@@ -486,10 +489,10 @@ fun ConnectedContent(
                     Icon(
                         imageVector = Icons.Default.Send,
                         contentDescription = "Enviar",
-                    Text(stringResource(id = com.whatsappbulk.sender.R.string.send_test_message))
+                        modifier = Modifier.size(20.dp)
                     )
                     Spacer(modifier = Modifier.width(8.dp))
-                    Text("Enviar Mensaje de Prueba")
+                    Text(stringResource(id = com.whatsappbulk.sender.R.string.send_test_message))
                 }
             }
 
@@ -507,14 +510,19 @@ fun ConnectedContent(
     Spacer(modifier = Modifier.height(24.dp))
 
     OutlinedButton(
-        Text(stringResource(id = com.whatsappbulk.sender.R.string.close_session))
+        onClick = onCloseSession,
         modifier = Modifier.fillMaxWidth()
     ) {
-        Text("Cerrar SesiÃ³n")
+        Text(stringResource(id = com.whatsappbulk.sender.R.string.close_session))
     }
+
     Spacer(modifier = Modifier.height(12.dp))
-    Button(onClick = onOpenCampaigns, modifier = Modifier.fillMaxWidth()) {
-        Text("Ir a Campañas")
+
+    Button(
+        onClick = onOpenCampaigns,
+        modifier = Modifier.fillMaxWidth()
+    ) {
+        Text(stringResource(id = com.whatsappbulk.sender.R.string.go_to_campaigns))
     }
 }
 
@@ -522,12 +530,9 @@ fun ConnectedContent(
 @Composable
 fun WhatsAppSessionScreenPreview() {
     WhatsAppBulkSenderTheme {
-        WhatsAppSessionScreen()
+        WhatsAppSessionScreen(onOpenCampaigns = {})
     }
 }
-
-
-
 
 
 

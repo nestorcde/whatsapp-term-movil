@@ -5,7 +5,7 @@
     <string name="verifying_session">Verificando sesión existente...</string>
     <string name="new_code">Nuevo Código</string>
     <string name="code_expired_hint">Si el código expiró, genera uno nuevo</string>
-    <string name="connected_title">WhatsApp Conectado.</string>
+    <string name="connected_title">WhatsApp Conectado</string>
     <string name="test_message">Mensaje de Prueba</string>
     <string name="phone_label">Número de destino</string>
     <string name="phone_placeholder">595973123456</string>
