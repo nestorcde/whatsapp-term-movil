@@ -92,6 +92,8 @@ fun CampaignDetailsScreen(
                         segundosDesde = uiState.segundosDesde,
                         segundosHasta = uiState.segundosHasta,
                         cantidadMaxDia = uiState.cantidadMaxDia,
+                        mensajesEnviadosHoy = uiState.mensajesEnviadosHoy,
+                        cuotaDisponible = uiState.cuotaDisponible,
                         onQuantityChange = viewModel::onQuantityChange,
                         onStart = { viewModel.onStartSend { id, qty -> onStartSend(id, qty) } },
                         onStartBackground = {
@@ -122,6 +124,8 @@ private fun DetailsContent(
     segundosDesde: Int,
     segundosHasta: Int,
     cantidadMaxDia: Int,
+    mensajesEnviadosHoy: Int,
+    cuotaDisponible: Int,
     onQuantityChange: (String) -> Unit,
     onStart: () -> Unit,
     onStartBackground: () -> Unit,
@@ -163,7 +167,9 @@ private fun DetailsContent(
             Card { Column(Modifier.padding(16.dp)) {
                 Text("Configuración de envío", style = MaterialTheme.typography.titleMedium)
                 Spacer(Modifier.height(8.dp))
-                Text("Máximo permitido: ${maxQuantity} (límite diario: ${cantidadMaxDia})")
+                Text("Enviados hoy: ${mensajesEnviadosHoy} / ${cantidadMaxDia}")
+                Text("Cuota disponible: ${cuotaDisponible} mensajes")
+                Text("Máximo por envío: ${maxQuantity}")
                 Spacer(Modifier.height(8.dp))
                 Column(modifier = Modifier.fillMaxWidth()) {
                     OutlinedTextField(

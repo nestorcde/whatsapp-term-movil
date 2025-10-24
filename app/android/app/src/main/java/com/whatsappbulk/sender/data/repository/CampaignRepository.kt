@@ -138,6 +138,24 @@ class CampaignRepository @Inject constructor(
         }
     }
 
+    override suspend fun getMessagesSentToday(): Result<Int> {
+        return try {
+            val response = campaignApi.getMessagesSentToday()
+            if (response.isSuccessful) {
+                val body = response.body()
+                if (body?.success == true && body.data != null) {
+                    Result.Success(body.data.total)
+                } else {
+                    Result.Error(body?.error ?: "Error obteniendo mensajes enviados hoy")
+                }
+            } else {
+                Result.Error("Error: ${response.code()}")
+            }
+        } catch (e: Exception) {
+            Result.Error(e.message ?: "Error de red")
+        }
+    }
+
     override suspend fun updateMessageStatus(
         campaignId: Int,
         secuencia: Int,

@@ -50,6 +50,13 @@ data class CampaignConfigDto(
     val cantidadMaxDia: Int
 )
 
+data class MessagesSentTodayDto(
+    @SerializedName("total")
+    val total: Int,
+    @SerializedName("fecha")
+    val fecha: String
+)
+
 data class CampaignDto(
     @SerializedName("id")
     val id: Int,
