@@ -4,11 +4,11 @@ import com.whatsappbulk.sender.data.remote.api.CampaignApi
 import com.whatsappbulk.sender.data.remote.dto.UpdateMessageStatusRequest
 import com.whatsappbulk.sender.domain.model.Campaign
 import com.whatsappbulk.sender.domain.model.CampaignConfig
-import com.whatsappbulk.sender.domain.model.CampaignDetail
-import com.whatsappbulk.sender.domain.model.CampaignTotals
 import com.whatsappbulk.sender.domain.model.CampaignContact
+import com.whatsappbulk.sender.domain.model.CampaignDetail
 import com.whatsappbulk.sender.domain.model.CampaignFull
 import com.whatsappbulk.sender.domain.model.CampaignSummary
+import com.whatsappbulk.sender.domain.model.CampaignTotals
 import com.whatsappbulk.sender.domain.model.Result
 import com.whatsappbulk.sender.domain.repository.ICampaignRepository
 import javax.inject.Inject
@@ -96,7 +96,7 @@ class CampaignRepository @Inject constructor(
                     val details = body.data.map { dto ->
                         CampaignDetail(
                             secuencia = dto.secuencia,
-                            socioNumero = dto.socioNumero,
+                            socioNumero = dto.numeroSocio.toString(),
                             nombre = dto.nombre,
                             telefono = dto.telefono,
                             mensajeIndividual = dto.mensajeIndividual,
