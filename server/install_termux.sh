@@ -150,24 +150,32 @@ cat > config.json <<JSON
 }
 JSON
 
-# 16) Compilar TypeScript (siempre con fallback ephemeral)
+# 16) Compilar TypeScript (siempre sin depender del shebang /usr/bin/env)
 echo "🔨 Compilando proyecto..."
-if [ -f tsconfig.json ]; then
-  # preferimos usar el Typescript local, pero si no está disponible por cualquier motivo,
-  # npx -y -p typescript garantiza un 'tsc' efímero para esta compilación.
-  if [ -x "./node_modules/.bin/tsc" ]; then
-    ./node_modules/.bin/tsc -p .
+
+run_tsc () {
+  # Preferir TS local con Node absoluto de Termux
+  if [ -f "node_modules/typescript/lib/tsc.js" ]; then
+    "$PREFIX/bin/node" node_modules/typescript/lib/tsc.js -p .
   else
+    # Fallback efímero: usa typescript del registro sin instalar devDeps globales
     npx -y -p typescript tsc -p .
   fi
-else
-  # si hubiera script build definido por el proyecto, lo respetamos;
-  # si falla por ausencia de 'tsc', usamos el ephemeral.
+}
+
+if [ -f tsconfig.json ]; then
+  # Asegurar que el script build (si existe) no rompa; ejecutamos nuestra función sí o sí
   if npm run | grep -qE 'build'; then
+    # Intentar el build del proyecto primero (por si tiene otros steps)
     if ! npm run build; then
-      npx -y -p typescript tsc -p . || true
+      run_tsc
     fi
+  else
+    run_tsc
   fi
+else
+  # Sin tsconfig, no compila; continuar
+  echo "ℹ️ No se encontró tsconfig.json; se omite tsc."
 fi
 
 # 17) Mostrar puertos/URLs útiles
