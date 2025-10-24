@@ -39,4 +39,14 @@ interface IWhatsAppRepository {
      * Enviar mensaje de prueba
      */
     suspend fun sendTestMessage(phone: String, message: String): Result<String>
+
+    /**
+     * Enviar mensaje de texto
+     */
+    suspend fun sendMessage(phone: String, message: String): Result<String>
+
+    /**
+     * Enviar imagen con mensaje
+     */
+    suspend fun sendImage(phone: String, imageBytes: ByteArray, caption: String): Result<String>
 }

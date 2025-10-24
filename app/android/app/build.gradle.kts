@@ -47,7 +47,8 @@ android {
     }
 
     composeOptions {
-        kotlinCompilerExtensionVersion = "1.5.4"
+        // Align Compose Compiler with Kotlin 1.9.22
+        kotlinCompilerExtensionVersion = "1.5.10"
     }
 
     packaging {

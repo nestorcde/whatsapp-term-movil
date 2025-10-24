@@ -195,6 +195,23 @@ class WhatsAppRepository @Inject constructor(
         }
     }
 
+    override suspend fun sendMessage(phone: String, message: String): Result<String> {
+        return sendTestMessage(phone, message)
+    }
+
+    override suspend fun sendImage(phone: String, imageBytes: ByteArray, caption: String): Result<String> {
+        return try {
+            // TODO: Implementar envío de imagen cuando el backend lo soporte
+            // Por ahora, solo enviamos el caption como mensaje de texto
+            sendMessage(phone, caption)
+        } catch (e: Exception) {
+            Result.Error(
+                "Error al enviar imagen: ${e.message}",
+                e
+            )
+        }
+    }
+
     /**
      * Mapea el estado del servidor al enum de la app
      */
