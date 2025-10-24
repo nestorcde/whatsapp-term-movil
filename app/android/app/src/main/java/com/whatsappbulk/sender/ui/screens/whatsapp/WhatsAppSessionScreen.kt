@@ -25,6 +25,8 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.res.stringResource
+import com.whatsappbulk.sender.R
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
@@ -38,7 +40,8 @@ import com.whatsappbulk.sender.ui.theme.WhatsAppBulkSenderTheme
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun WhatsAppSessionScreen(
-    viewModel: WhatsAppViewModel = hiltViewModel(, onOpenCampaigns: () -> Unit)
+    viewModel: WhatsAppViewModel = hiltViewModel(),
+    onOpenCampaigns: () -> Unit
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
 
@@ -47,7 +50,7 @@ fun WhatsAppSessionScreen(
             TopAppBar(
                 title = {
                     Text(
-                        text = "SesiÃ³n de WhatsApp",
+                        text = stringResource(id = com.whatsappbulk.sender.R.string.session_title),
                         style = MaterialTheme.typography.titleLarge
                     )
                 },
@@ -398,7 +401,7 @@ fun LinkCodeContent(
                 }
             }
 
-            Spacer(modifier = Modifier.height(8.dp))
+                text = stringResource(id = com.whatsappbulk.sender.R.string.code_expired_hint),
 
             Text(
                 text = "Si el cÃ³digo expirÃ³, genera uno nuevo",
@@ -442,8 +445,8 @@ fun ConnectedContent(
                 modifier = Modifier.padding(bottom = 12.dp)
             )
 
-            OutlinedTextField(
-                value = testPhone,
+                label = { Text(stringResource(id = com.whatsappbulk.sender.R.string.phone_label)) },
+                placeholder = { Text(stringResource(id = com.whatsappbulk.sender.R.string.phone_placeholder)) },
                 onValueChange = onTestPhoneChange,
                 label = { Text("NÃºmero de destino") },
                 placeholder = { Text("595973123456") },
@@ -483,7 +486,7 @@ fun ConnectedContent(
                     Icon(
                         imageVector = Icons.Default.Send,
                         contentDescription = "Enviar",
-                        modifier = Modifier.size(20.dp)
+                    Text(stringResource(id = com.whatsappbulk.sender.R.string.send_test_message))
                     )
                     Spacer(modifier = Modifier.width(8.dp))
                     Text("Enviar Mensaje de Prueba")
@@ -504,7 +507,7 @@ fun ConnectedContent(
     Spacer(modifier = Modifier.height(24.dp))
 
     OutlinedButton(
-        onClick = onCloseSession,
+        Text(stringResource(id = com.whatsappbulk.sender.R.string.close_session))
         modifier = Modifier.fillMaxWidth()
     ) {
         Text("Cerrar SesiÃ³n")
@@ -522,6 +525,11 @@ fun WhatsAppSessionScreenPreview() {
         WhatsAppSessionScreen()
     }
 }
+
+
+
+
+
 
 
 
