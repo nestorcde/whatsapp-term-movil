@@ -122,8 +122,8 @@ data class CampaignTotalsDto(
 data class CampaignDetailDto(
     @SerializedName("secuencia")
     val secuencia: Int,
-    @SerializedName("socioNumero")
-    val socioNumero: String,
+    @SerializedName("numeroSocio")
+    val numeroSocio: Int,
     @SerializedName("nombre")
     val nombre: String,
     @SerializedName("telefono")

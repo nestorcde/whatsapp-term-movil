@@ -1,33 +1,59 @@
 ﻿package com.whatsappbulk.sender.ui.screens.campaigns
 
-import androidx.compose.foundation.layout.*
+import android.graphics.BitmapFactory
+import androidx.compose.foundation.Image
+import androidx.compose.foundation.background
+import androidx.compose.foundation.horizontalScroll
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Image
-import androidx.compose.material3.*
+import androidx.compose.material3.Button
+import androidx.compose.material3.Card
+import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Text
+import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.text.input.KeyboardType
-import androidx.compose.ui.text.style.TextOverflow
-import androidx.compose.ui.unit.dp
-import androidx.hilt.navigation.compose.hiltViewModel
-import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import androidx.compose.ui.platform.LocalLifecycleOwner
-import androidx.lifecycle.Lifecycle
-import androidx.lifecycle.LifecycleEventObserver
-import com.whatsappbulk.sender.domain.model.CampaignFull
-import android.graphics.BitmapFactory
-import androidx.compose.foundation.Image
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalLifecycleOwner
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.unit.dp
+import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleEventObserver
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.work.Data
 import androidx.work.OneTimeWorkRequestBuilder
 import androidx.work.WorkManager
+import com.whatsappbulk.sender.domain.model.CampaignFull
 import com.whatsappbulk.sender.work.SendingWorker
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -147,19 +173,68 @@ private fun DetailsContent(
 
         item {
             Card { Column(Modifier.padding(16.dp)) {
-                Text("Contactos", style = MaterialTheme.typography.titleMedium)
+                Text("Contactos (${full.contacts.size})", style = MaterialTheme.typography.titleMedium)
                 Spacer(Modifier.height(8.dp))
-                Box(modifier = Modifier.fillMaxWidth().heightIn(max = 300.dp)) {
-                    androidx.compose.foundation.lazy.LazyColumn {
+
+                // Tabla con scroll horizontal y vertical
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .heightIn(max = 400.dp)
+                ) {
+                    val horizontalScrollState = rememberScrollState()
+
+                    androidx.compose.foundation.lazy.LazyColumn(
+                        modifier = Modifier.horizontalScroll(horizontalScrollState)
+                    ) {
+                        // Cabecera de la tabla
+                        item {
+                            Row(
+                                modifier = Modifier
+                                    .background(MaterialTheme.colorScheme.primaryContainer)
+                                    .padding(8.dp)
+                            ) {
+                                TableHeaderCell("Sec", width = 50.dp)
+                                TableHeaderCell("Socio", width = 80.dp)
+                                TableHeaderCell("Nombre", width = 200.dp)
+                                TableHeaderCell("Teléfono", width = 120.dp)
+                                TableHeaderCell("Estado", width = 70.dp)
+                                TableHeaderCell("Intentos", width = 70.dp)
+                                TableHeaderCell("Fecha/Hora", width = 150.dp)
+                                TableHeaderCell("Mensaje Indiv.", width = 250.dp)
+                            }
+                        }
+
+                        // Filas de datos
                         items(full.contacts.size) { idx ->
                             val c = full.contacts[idx]
-                            Text("${c.secuencia}. ${c.nombre} - ${c.telefono} (${c.estado ?: "PEN"})",
-                                maxLines = 1,
-                                overflow = TextOverflow.Ellipsis,
-                                modifier = Modifier.padding(vertical = 2.dp))
+                            Row(
+                                modifier = Modifier
+                                    .background(
+                                        if (idx % 2 == 0) MaterialTheme.colorScheme.surface
+                                        else MaterialTheme.colorScheme.surfaceVariant
+                                    )
+                                    .padding(8.dp)
+                            ) {
+                                TableCell(c.secuencia.toString(), width = 50.dp)
+                                TableCell(c.numeroSocio.toString(), width = 80.dp)
+                                TableCell(c.nombre, width = 200.dp)
+                                TableCell(c.telefono, width = 120.dp)
+                                TableCell(c.estado ?: "PEN", width = 70.dp)
+                                TableCell(c.contadorIntentos.toString(), width = 70.dp)
+                                TableCell(c.fechaHoraEstado ?: "-", width = 150.dp)
+                                TableCell(c.mensajeIndividual ?: "-", width = 250.dp)
+                            }
                         }
                     }
                 }
+
+                Spacer(Modifier.height(4.dp))
+                Text(
+                    "Desliza horizontalmente para ver todos los campos",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
             }}
         }
 
@@ -248,4 +323,38 @@ private fun MessageCard(index: Int, text: String, imageBytes: ByteArray?) {
     }
 }
 
+@Composable
+private fun TableHeaderCell(text: String, width: Dp) {
+    Box(
+        modifier = Modifier
+            .width(width)
+            .padding(horizontal = 4.dp),
+        contentAlignment = Alignment.Center
+    ) {
+        Text(
+            text = text,
+            style = MaterialTheme.typography.labelMedium,
+            fontWeight = FontWeight.Bold,
+            color = MaterialTheme.colorScheme.onPrimaryContainer,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis
+        )
+    }
+}
 
+@Composable
+private fun TableCell(text: String, width: Dp) {
+    Box(
+        modifier = Modifier
+            .width(width)
+            .padding(horizontal = 4.dp),
+        contentAlignment = Alignment.CenterStart
+    ) {
+        Text(
+            text = text,
+            style = MaterialTheme.typography.bodySmall,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis
+        )
+    }
+}

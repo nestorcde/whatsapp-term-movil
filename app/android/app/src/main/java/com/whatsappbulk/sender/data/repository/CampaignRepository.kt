@@ -258,6 +258,7 @@ class CampaignRepository @Inject constructor(
                 val contacts = body.data.map { dto ->
                     CampaignContact(
                         secuencia = dto.secuencia,
+                        numeroSocio = dto.numeroSocio,
                         nombre = dto.nombre,
                         telefono = dto.telefono,
                         estado = dto.estado,
