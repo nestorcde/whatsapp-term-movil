@@ -7,15 +7,19 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
-import androidx.compose.ui.Modifier
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.navigation.NavType
+import androidx.navigation.compose.NavHost
+import androidx.navigation.compose.composable
+import androidx.navigation.navArgument
+import androidx.navigation.compose.rememberNavController
+import androidx.compose.ui.Modifier
+import com.whatsappbulk.sender.ui.screens.campaigns.CampaignDetailsScreen
 import com.whatsappbulk.sender.ui.screens.campaigns.CampaignListScreen
 import com.whatsappbulk.sender.ui.screens.login.LoginScreen
 import com.whatsappbulk.sender.ui.screens.login.LoginViewModel
+import com.whatsappbulk.sender.ui.screens.sending.SendingScreen
 import com.whatsappbulk.sender.ui.screens.whatsapp.WhatsAppSessionScreen
 import com.whatsappbulk.sender.ui.theme.WhatsAppBulkSenderTheme
 import dagger.hilt.android.AndroidEntryPoint
@@ -30,31 +34,49 @@ class MainActivity : ComponentActivity() {
                     modifier = Modifier.fillMaxSize(),
                     color = MaterialTheme.colorScheme.background
                 ) {
-                    var currentScreen by remember { mutableStateOf("login") }
-
-                    when (currentScreen) {
-                        "login" -> {
+                    val navController = rememberNavController()
+                    NavHost(navController = navController, startDestination = "login") {
+                        composable("login") {
                             val loginViewModel: LoginViewModel = hiltViewModel()
                             val uiState by loginViewModel.uiState.collectAsStateWithLifecycle()
-
                             LoginScreen(
                                 uiState = uiState,
                                 onUsernameChange = loginViewModel::onUsernameChange,
                                 onPasswordChange = loginViewModel::onPasswordChange,
                                 onLoginClick = loginViewModel::login,
-                                onNavigateToWhatsApp = { currentScreen = "whatsapp" }
+                                onNavigateToWhatsApp = { navController.navigate("whatsapp") }
                             )
                         }
-                        "whatsapp" -> {
-                            WhatsAppSessionScreen(
-                                onOpenCampaigns = { currentScreen = "campaigns" }
-                            )
+                        composable("whatsapp") {
+                            WhatsAppSessionScreen(onOpenCampaigns = { navController.navigate("campaignList") })
                         }
-                        "campaigns" -> {
+                        composable("campaignList") {
                             CampaignListScreen(
-                                onCampaignClick = { /* navigate to details if needed */ },
-                                onBackClick = { currentScreen = "whatsapp" }
+                                onCampaignClick = { campaign ->
+                                    navController.navigate("campaignDetails/${campaign.id}")
+                                },
+                                onBackClick = { navController.popBackStack() }
                             )
+                        }
+                        composable(
+                            route = "campaignDetails/{campaignId}",
+                            arguments = listOf(navArgument("campaignId") { type = NavType.IntType })
+                        ) {
+                            CampaignDetailsScreen(
+                                onBack = { navController.popBackStack() },
+                                onStartSend = { campaignId, quantity ->
+                                    navController.navigate("sending/${campaignId}?quantity=${quantity}")
+                                }
+                            )
+                        }
+                        composable(
+                            route = "sending/{campaignId}?quantity={quantity}",
+                            arguments = listOf(
+                                navArgument("campaignId") { type = NavType.IntType },
+                                navArgument("quantity") { type = NavType.IntType; defaultValue = 0 }
+                            )
+                        ) {
+                            SendingScreen(onBack = { navController.popBackStack() })
                         }
                     }
                 }

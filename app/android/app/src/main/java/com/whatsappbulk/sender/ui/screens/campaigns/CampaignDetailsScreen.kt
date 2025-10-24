@@ -4,7 +4,6 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.Image
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
@@ -23,6 +22,7 @@ import androidx.lifecycle.LifecycleEventObserver
 import com.whatsappbulk.sender.domain.model.CampaignFull
 import android.graphics.BitmapFactory
 import androidx.compose.foundation.Image
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.platform.LocalContext
 import androidx.work.Data
@@ -55,10 +55,10 @@ fun CampaignDetailsScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Detalles de campa??a") },
+                title = { Text("Detalles de campaña") },
                 navigationIcon = {
                     IconButton(onClick = onBack) {
-                        Icon(Icons.Default.ArrowBack, contentDescription = "Volver")
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Volver")
                     }
                 }
             )
@@ -155,9 +155,9 @@ private fun DetailsContent(
 
         item {
             Card { Column(Modifier.padding(16.dp)) {
-                Text("Configuraci??n de env??o", style = MaterialTheme.typography.titleMedium)
+                Text("Configuración de envío", style = MaterialTheme.typography.titleMedium)
                 Spacer(Modifier.height(8.dp))
-                Text("M??ximo permitido: ${maxQuantity} (tope app: 50)")
+                Text("Máximo permitido: ${maxQuantity} (tope app: 50)")
                 Spacer(Modifier.height(8.dp))
                 Column(modifier = Modifier.fillMaxWidth()) {
                     OutlinedTextField(
@@ -181,7 +181,7 @@ private fun DetailsContent(
                     }
                 }
                 Spacer(Modifier.height(8.dp))
-                Text("Intervalo entre mensajes: 20-50s (fijo por ahora)", style = MaterialTheme.typography.bodySmall)
+                Text("Intervalo entre mensajes: 20-50s", style = MaterialTheme.typography.bodySmall)
             }}
         }
     }
