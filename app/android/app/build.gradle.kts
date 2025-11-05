@@ -1,3 +1,6 @@
+import java.io.FileInputStream
+import java.util.Properties
+ 
 plugins {
     id("com.android.application")
     id("org.jetbrains.kotlin.android")
@@ -20,6 +23,19 @@ android {
         vectorDrawables {
             useSupportLibrary = true
         }
+
+        // BuildConfig fields from app/android/local.properties
+        val localProps = Properties()
+        val localPropsFile = file("../local.properties")
+        if (localPropsFile.exists()) {
+            val fis = FileInputStream(localPropsFile)
+            localProps.load(fis)
+            fis.close()
+        }
+
+        val apiBaseUrlProp = (localProps.getProperty("api.base.url") ?: "http://127.0.0.1:3001")
+        val apiBaseUrl = if (apiBaseUrlProp.endsWith("/")) apiBaseUrlProp else "$apiBaseUrlProp/"
+        buildConfigField("String", "API_BASE_URL", "\"$apiBaseUrl\"")
     }
 
     buildTypes {

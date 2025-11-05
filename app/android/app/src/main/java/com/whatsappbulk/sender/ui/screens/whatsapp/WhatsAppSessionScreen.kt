@@ -1,6 +1,5 @@
 ﻿package com.whatsappbulk.sender.ui.screens.whatsapp
 
-import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -16,17 +15,29 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.Send
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Phone
-import androidx.compose.material.icons.filled.Send
-import androidx.compose.material3.*
+import androidx.compose.material3.Button
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.Icon
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.OutlinedTextFieldDefaults
+import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Text
+import androidx.compose.material3.TopAppBar
+import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.res.stringResource
-import com.whatsappbulk.sender.R
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
@@ -67,7 +78,7 @@ fun WhatsAppSessionScreen(
                 .padding(paddingValues)
         ) {
             if (uiState.isChecking) {
-                // Estado de verificaciÃ³n inicial
+                // Estado de verificación inicial
                 Column(
                     modifier = Modifier
                         .fillMaxSize()
@@ -100,7 +111,7 @@ fun WhatsAppSessionScreen(
 
                     Spacer(modifier = Modifier.height(24.dp))
 
-                    // Contenido segÃºn el estado de la sesiÃ³n
+                    // Contenido según el estado de la sesión
                     when (uiState.sessionStatus) {
                         SessionStatus.DISCONNECTED -> {
                             DisconnectedContent(
@@ -242,10 +253,10 @@ fun DisconnectedContent(
                 modifier = Modifier.padding(bottom = 8.dp)
             )
             Text(
-                text = "1. Ingresa tu nÃºmero con cÃ³digo de paÃ­s\n" +
-                       "2. RecibirÃ¡s un cÃ³digo de 8 dÃ­gitos en WhatsApp\n" +
+                text = "1. Ingresa tu número con código de país\n" +
+                       "2. Recibirás un código de 8 dígitos en WhatsApp\n" +
                        "3. Verifica que coincida y confirma\n" +
-                       "4. Â¡Listo para enviar mensajes!",
+                       "4. ¡Listo para enviar mensajes!",
                 style = MaterialTheme.typography.bodyMedium
             )
         }
@@ -256,12 +267,12 @@ fun DisconnectedContent(
     OutlinedTextField(
         value = phoneNumber,
         onValueChange = onPhoneNumberChange,
-        label = { Text("NÃºmero de telÃ©fono") },
+        label = { Text("Número de teléfono") },
         placeholder = { Text("595973123456") },
         leadingIcon = {
             Icon(
                 imageVector = Icons.Default.Phone,
-                contentDescription = "TelÃ©fono"
+                contentDescription = "Teléfono"
             )
         },
         singleLine = true,
@@ -271,7 +282,7 @@ fun DisconnectedContent(
             keyboardType = KeyboardType.Phone
         ),
         supportingText = {
-            Text("Formato: {cÃ³digoPaÃ­s}{nÃºmero} sin + ni espacios")
+            Text("Formato: {códigoPaís}{número} sin + ni espacios")
         }
     )
 
@@ -291,7 +302,7 @@ fun DisconnectedContent(
             )
         } else {
             Text(
-                text = "Iniciar SesiÃ³n",
+                text = "Iniciar Sesión",
                 style = MaterialTheme.typography.titleMedium
             )
         }
@@ -316,17 +327,17 @@ fun LinkCodeContent(
                     .padding(bottom = 16.dp)
             )
             Text(
-                text = "Generando cÃ³digo de vinculaciÃ³n...",
+                text = "Generando código de vinculación...",
                 style = MaterialTheme.typography.bodyLarge
             )
         } else {
             Text(
-                text = "CÃ³digo de VinculaciÃ³n",
+                text = "Código de Vinculación",
                 style = MaterialTheme.typography.headlineSmall,
                 modifier = Modifier.padding(bottom = 16.dp)
             )
 
-            // Mostrar cÃ³digo grande
+            // Mostrar código grande
             Card(
                 modifier = Modifier.fillMaxWidth(),
                 colors = CardDefaults.cardColors(
@@ -370,10 +381,10 @@ fun LinkCodeContent(
                         modifier = Modifier.padding(bottom = 8.dp)
                     )
                     Text(
-                        text = "1. Abre WhatsApp en tu telÃ©fono\n" +
+                        text = "1. Abre WhatsApp en tu teléfono\n" +
                                "2. Ve a Dispositivos Vinculados\n" +
-                               "3. Verifica que el cÃ³digo coincida\n" +
-                               "4. Confirma la vinculaciÃ³n",
+                               "3. Verifica que el código coincida\n" +
+                               "4. Confirma la vinculación",
                         style = MaterialTheme.typography.bodyMedium
                     )
                 }
@@ -381,7 +392,7 @@ fun LinkCodeContent(
 
             Spacer(modifier = Modifier.height(24.dp))
 
-            // Botones de acciÃ³n
+            // Botones de acción
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(12.dp)
@@ -487,7 +498,7 @@ fun ConnectedContent(
                     )
                 } else {
                     Icon(
-                        imageVector = Icons.Default.Send,
+                        imageVector = Icons.AutoMirrored.Filled.Send,
                         contentDescription = "Enviar",
                         modifier = Modifier.size(20.dp)
                     )

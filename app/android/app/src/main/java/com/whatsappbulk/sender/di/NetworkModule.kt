@@ -3,7 +3,9 @@ package com.whatsappbulk.sender.di
 import android.content.Context
 import androidx.security.crypto.EncryptedSharedPreferences
 import androidx.security.crypto.MasterKey
+import com.whatsappbulk.sender.BuildConfig
 import com.whatsappbulk.sender.data.remote.api.CampaignApi
+import com.whatsappbulk.sender.data.remote.api.HealthApi
 import com.whatsappbulk.sender.data.remote.api.WhatsAppApi
 import dagger.Module
 import dagger.Provides
@@ -31,12 +33,15 @@ annotation class CampaignRetrofit
 @Retention(AnnotationRetention.BINARY)
 annotation class AuthInterceptor
 
+@Qualifier
+@Retention(AnnotationRetention.BINARY)
+annotation class HealthRetrofit
+
 @Module
 @InstallIn(SingletonComponent::class)
 object NetworkModule {
 
     private const val WHATSAPP_BASE_URL = "http://127.0.0.1:3000/"
-    private const val CAMPAIGN_BASE_URL = "http://192.168.31.33:3001/"
 
     @Provides
     @Singleton
@@ -96,6 +101,18 @@ object NetworkModule {
 
     @Provides
     @Singleton
+    @HealthRetrofit
+    fun provideHealthCheckOkHttpClient(
+        logging: HttpLoggingInterceptor
+    ): OkHttpClient = OkHttpClient.Builder()
+        .addInterceptor(logging)
+        .connectTimeout(10, TimeUnit.SECONDS)
+        .readTimeout(10, TimeUnit.SECONDS)
+        .writeTimeout(10, TimeUnit.SECONDS)
+        .build()
+
+    @Provides
+    @Singleton
     @WhatsAppRetrofit
     fun provideWhatsAppRetrofit(@WhatsAppRetrofit client: OkHttpClient): Retrofit =
         Retrofit.Builder()
@@ -109,7 +126,17 @@ object NetworkModule {
     @CampaignRetrofit
     fun provideCampaignRetrofit(@CampaignRetrofit client: OkHttpClient): Retrofit =
         Retrofit.Builder()
-            .baseUrl(CAMPAIGN_BASE_URL)
+            .baseUrl(BuildConfig.API_BASE_URL)
+            .client(client)
+            .addConverterFactory(GsonConverterFactory.create())
+            .build()
+
+    @Provides
+    @Singleton
+    @HealthRetrofit
+    fun provideHealthRetrofit(@HealthRetrofit client: OkHttpClient): Retrofit =
+        Retrofit.Builder()
+            .baseUrl(BuildConfig.API_BASE_URL)
             .client(client)
             .addConverterFactory(GsonConverterFactory.create())
             .build()
@@ -123,4 +150,9 @@ object NetworkModule {
     @Singleton
     fun provideCampaignApi(@CampaignRetrofit retrofit: Retrofit): CampaignApi =
         retrofit.create(CampaignApi::class.java)
+
+    @Provides
+    @Singleton
+    fun provideHealthApi(@HealthRetrofit retrofit: Retrofit): HealthApi =
+        retrofit.create(HealthApi::class.java)
 }
