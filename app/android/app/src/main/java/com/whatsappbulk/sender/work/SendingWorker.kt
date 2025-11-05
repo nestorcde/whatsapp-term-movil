@@ -24,6 +24,7 @@ import okhttp3.logging.HttpLoggingInterceptor
 import retrofit2.Retrofit
 import retrofit2.converter.gson.GsonConverterFactory
 import kotlin.random.Random
+import com.whatsappbulk.sender.BuildConfig
 
 class SendingWorker(
     appContext: Context,
@@ -35,7 +36,7 @@ class SendingWorker(
         const val KEY_QUANTITY = "quantity"
         const val NOTIF_ID = 1001
         private const val WHATSAPP_BASE_URL = "http://127.0.0.1:3000/"
-        private const val CAMPAIGN_BASE_URL = "http://192.168.31.33:3001/"
+        private const val CAMPAIGN_BASE_URL_UNUSED = "http://192.168.31.33:3001/" // deprecated, using BuildConfig
     }
 
     override suspend fun doWork(): Result {
@@ -82,7 +83,7 @@ class SendingWorker(
             .addConverterFactory(GsonConverterFactory.create())
             .build()
         val campRetrofit = Retrofit.Builder()
-            .baseUrl(CAMPAIGN_BASE_URL)
+            .baseUrl(BuildConfig.API_BASE_URL)
             .client(campHttp)
             .addConverterFactory(GsonConverterFactory.create())
             .build()
@@ -101,6 +102,24 @@ class SendingWorker(
         val toSend = quantity.coerceAtMost(available).coerceAtMost(50)
         val targets = pendingContacts.take(toSend)
 
+        // Pre-cargar imagenes una sola vez si existen
+        val imageCache = hashMapOf<Int, ByteArray>()
+        if (full.summary.tieneImagen1) {
+            (campRepo.getCampaignImage(campaignId, 1) as? com.whatsappbulk.sender.domain.model.Result.Success)?.data?.let {
+                imageCache[0] = it
+            }
+        }
+        if (full.summary.tieneImagen2) {
+            (campRepo.getCampaignImage(campaignId, 2) as? com.whatsappbulk.sender.domain.model.Result.Success)?.data?.let {
+                imageCache[1] = it
+            }
+        }
+        if (full.summary.tieneImagen3) {
+            (campRepo.getCampaignImage(campaignId, 3) as? com.whatsappbulk.sender.domain.model.Result.Success)?.data?.let {
+                imageCache[2] = it
+            }
+        }
+
         for ((index, contact) in targets.withIndex()) {
             if (isStopped) return Result.success()
 
@@ -111,8 +130,7 @@ class SendingWorker(
             val msg = "${contact.nombre} ${full.messages.getOrNull(msgIndex) ?: ""}"
 
             val sendResult = if (shouldSendImage(full, msgIndex)) {
-                val imgNumber = msgIndex + 1
-                val imgBytes = (campRepo.getCampaignImage(campaignId, imgNumber) as? com.whatsappbulk.sender.domain.model.Result.Success)?.data
+                val imgBytes = imageCache[msgIndex]
                 if (imgBytes != null) {
                     whatsRepo.sendImage(normalizePhone(contact.telefono), imgBytes, msg)
                 } else {

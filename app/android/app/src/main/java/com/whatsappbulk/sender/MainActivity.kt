@@ -121,7 +121,8 @@ class MainActivity : ComponentActivity() {
                                 onCampaignClick = { campaign ->
                                     navController.navigate("campaignDetails/${campaign.id}")
                                 },
-                                onBackClick = { navController.popBackStack() }
+                                onBackClick = { navController.popBackStack() },
+                                onRequireVpn = { navController.navigate("vpn_connection") }
                             )
                         }
                         composable(
@@ -132,7 +133,8 @@ class MainActivity : ComponentActivity() {
                                 onBack = { navController.popBackStack() },
                                 onStartSend = { campaignId, quantity ->
                                     navController.navigate("sending/${campaignId}?quantity=${quantity}")
-                                }
+                                },
+                                onRequireVpn = { navController.navigate("vpn_connection") }
                             )
                         }
                         composable(

@@ -12,6 +12,7 @@ import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.platform.LocalLifecycleOwner
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
@@ -23,22 +24,34 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.whatsappbulk.sender.domain.model.Campaign
+import com.whatsappbulk.sender.ui.screens.vpn.HealthGuardViewModel
+import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun CampaignListScreen(
     viewModel: CampaignListViewModel = hiltViewModel(),
     onCampaignClick: (Campaign) -> Unit,
-    onBackClick: () -> Unit
+    onBackClick: () -> Unit,
+    onRequireVpn: () -> Unit
 ) {
     val uiState by viewModel.uiState.collectAsState()
+    val guard: HealthGuardViewModel = hiltViewModel()
+    val scope = rememberCoroutineScope()
 
     // Auto-refresh al volver a la pantalla
     val lifecycleOwner = LocalLifecycleOwner.current
     DisposableEffect(lifecycleOwner) {
         val observer = LifecycleEventObserver { _, event ->
             if (event == Lifecycle.Event.ON_RESUME) {
-                viewModel.loadCampaigns()
+                scope.launch {
+                    val connected = guard.isConnected()
+                    if (connected) {
+                        viewModel.loadCampaigns()
+                    } else {
+                        onRequireVpn()
+                    }
+                }
             }
         }
         lifecycleOwner.lifecycle.addObserver(observer)
