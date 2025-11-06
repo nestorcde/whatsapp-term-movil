@@ -234,7 +234,14 @@ class SendingViewModel @Inject constructor(
     }
 
     private suspend fun getImageBytes(imageNumber: Int): ByteArray? {
+        // 1) Intentar desde caché en memoria poblada por CampaignDetails
+        com.whatsappbulk.sender.util.ImageMemoryCache.get(campaignId, imageNumber)?.let {
+            imageCache[imageNumber] = it
+            return it
+        }
+        // 2) Intentar caché local de esta sesión
         imageCache[imageNumber]?.let { return it }
+        // 3) Descargar solo si no existe
         val result = campaignRepository.getCampaignImage(campaignId, imageNumber)
         return if (result is Result.Success) {
             imageCache[imageNumber] = result.data

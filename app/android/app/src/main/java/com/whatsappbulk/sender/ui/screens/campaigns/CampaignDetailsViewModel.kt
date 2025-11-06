@@ -131,21 +131,30 @@ class CampaignDetailsViewModel @Inject constructor(
             // Mensaje 1
             if (full.summary.tieneImagen1) {
                 when (val r = campaignRepository.getCampaignImage(campaignId, 1)) {
-                    is Result.Success -> _uiState.update { it.copy(image1 = r.data) }
+                    is Result.Success -> {
+                        _uiState.update { it.copy(image1 = r.data) }
+                        r.data?.let { bytes -> com.whatsappbulk.sender.util.ImageMemoryCache.put(campaignId, 1, bytes) }
+                    }
                     else -> Unit
                 }
             }
             // Mensaje 2
             if (full.summary.tieneImagen2) {
                 when (val r = campaignRepository.getCampaignImage(campaignId, 2)) {
-                    is Result.Success -> _uiState.update { it.copy(image2 = r.data) }
+                    is Result.Success -> {
+                        _uiState.update { it.copy(image2 = r.data) }
+                        r.data?.let { bytes -> com.whatsappbulk.sender.util.ImageMemoryCache.put(campaignId, 2, bytes) }
+                    }
                     else -> Unit
                 }
             }
             // Mensaje 3
             if (full.summary.tieneImagen3) {
                 when (val r = campaignRepository.getCampaignImage(campaignId, 3)) {
-                    is Result.Success -> _uiState.update { it.copy(image3 = r.data) }
+                    is Result.Success -> {
+                        _uiState.update { it.copy(image3 = r.data) }
+                        r.data?.let { bytes -> com.whatsappbulk.sender.util.ImageMemoryCache.put(campaignId, 3, bytes) }
+                    }
                     else -> Unit
                 }
             }

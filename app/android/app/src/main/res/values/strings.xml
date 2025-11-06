@@ -1,5 +1,32 @@
 <resources>
-    <string name="app_name">WhatsApp Bulk Sender</string>
+    <string name="app_name">WhatsAyacape</string>
+    <!-- Splash Screen -->
+    <string name="splash_checking_connection">Verificando conexión con el servidor...</string>
+
+    <!-- VPN Connection Screen -->
+    <string name="vpn_connection_title">Conexión VPN Requerida</string>
+    <string name="vpn_connection_message">No se pudo conectar al servidor. Debes conectarte a FortiClient VPN para continuar.</string>
+    <string name="vpn_connection_not_installed">FortiClient VPN no está instalado. Por favor, instálalo desde Play Store.</string>
+    <string name="vpn_open_forticlient">Abrir FortiClient</string>
+    <string name="vpn_verify_connection">Verificar Conexión</string>
+
+    <!-- VPN Install Screen -->
+    <string name="vpn_install_title">FortiClient VPN Requerido</string>
+    <string name="vpn_install_message">Para acceder al servidor, debes instalar FortiClient VPN desde Play Store.</string>
+    <string name="vpn_install_instructions">Una vez instalado, vuelve aquí para abrir FortiClient y conectarte a la VPN.</string>
+    <string name="vpn_install_button">Ir a Play Store</string>
+
+    <!-- Errors -->
+    <string name="error_no_connection">No se pudo conectar al servidor</string>
+    <string name="error_health_check_failed">La verificación de salud del servidor falló</string>
+    <string name="error_forticlient_not_found">FortiClient VPN no está instalado</string>
+    <string name="error_cannot_open_forticlient">No se pudo abrir FortiClient</string>
+    <string name="error_cannot_open_playstore">No se pudo abrir Play Store</string>
+
+    <!-- Info -->
+    <string name="info_last_check">Última verificación: %1$s</string>
+    <string name="info_checking">Verificando...</string>
+    <string name="press_back_again_to_exit">Presione nuevamente para cerrar la aplicación</string>
     <!-- WhatsApp Session -->
     <string name="session_title">Sesión de WhatsApp</string>
     <string name="verifying_session">Verificando sesión existente...</string>

@@ -1,3 +1,6 @@
+import java.io.FileInputStream
+import java.util.Properties
+ 
 plugins {
     id("com.android.application")
     id("org.jetbrains.kotlin.android")
@@ -20,6 +23,19 @@ android {
         vectorDrawables {
             useSupportLibrary = true
         }
+
+        // BuildConfig fields from app/android/local.properties
+        val localProps = Properties()
+        val localPropsFile = file("../local.properties")
+        if (localPropsFile.exists()) {
+            val fis = FileInputStream(localPropsFile)
+            localProps.load(fis)
+            fis.close()
+        }
+
+        val apiBaseUrlProp = (localProps.getProperty("api.base.url") ?: "http://127.0.0.1:3001")
+        val apiBaseUrl = if (apiBaseUrlProp.endsWith("/")) apiBaseUrlProp else "$apiBaseUrlProp/"
+        buildConfigField("String", "API_BASE_URL", "\"$apiBaseUrl\"")
     }
 
     buildTypes {
@@ -133,4 +149,41 @@ dependencies {
 // Allow references to generated code
 kapt {
     correctErrorTypes = true
+}
+
+// Copy custom launcher icons from app/iconos into res mipmap folders
+tasks.register<Copy>("copyCustomLauncherIcons") {
+    // Module dir is app/android/app; custom icons live in app/iconos
+    val base = project.file("../../iconos")
+    into("src/main/res")
+
+    val dpis = listOf("mdpi","hdpi","xhdpi","xxhdpi","xxxhdpi")
+    dpis.forEach { dpi ->
+        // Remove default webp variants to avoid duplicate resources
+        doFirst {
+            delete(
+                "src/main/res/mipmap-$dpi/ic_launcher.webp",
+                "src/main/res/mipmap-$dpi/ic_launcher_round.webp"
+            )
+        }
+        // ic_launcher.png -> ic_launcher.png
+        from(file("$base/mipmap-$dpi/ic_launcher.png")) {
+            into("mipmap-$dpi")
+            rename { "ic_launcher.png" }
+        }
+        // duplicate as foreground for adaptive icon
+        from(file("$base/mipmap-$dpi/ic_launcher.png")) {
+            into("mipmap-$dpi")
+            rename { "ic_launcher_foreground.png" }
+        }
+        // duplicate as round icon too (fallback)
+        from(file("$base/mipmap-$dpi/ic_launcher.png")) {
+            into("mipmap-$dpi")
+            rename { "ic_launcher_round.png" }
+        }
+    }
+}
+
+tasks.named("preBuild").configure {
+    dependsOn("copyCustomLauncherIcons")
 }
