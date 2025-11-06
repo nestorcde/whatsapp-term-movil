@@ -59,6 +59,17 @@ interface WhatsAppApi {
     ): Response<ApiResponse<MessageDto>>
 
     /**
+     * Enviar imagen con caption
+     */
+    @Multipart
+    @POST("api/messages/send-image")
+    suspend fun sendImage(
+        @Part("phone") phone: okhttp3.RequestBody,
+        @Part("caption") caption: okhttp3.RequestBody?,
+        @Part image: okhttp3.MultipartBody.Part
+    ): Response<ApiResponse<MessageDto>>
+
+    /**
      * Obtener mensajes recibidos
      */
     @GET("api/messages")

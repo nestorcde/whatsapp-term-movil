@@ -139,11 +139,10 @@ class WhatsAppViewModel @Inject constructor(
                         )
                     }
 
-                    // Obtener el código de vinculación
-                    getLinkCode()
-
-                    // Iniciar polling del estado (después de obtener el código)
+                    // Iniciar polling del estado de inmediato
                     startPollingStatus()
+                    // Y en paralelo intentar obtener el código de vinculación
+                    getLinkCode()
                 }
                 is Result.Error -> {
                     _uiState.update {
@@ -174,16 +173,48 @@ class WhatsAppViewModel @Inject constructor(
                             isLoading = false,
                             linkCode = formattedCode,
                             sessionStatus = SessionStatus.LINK_CODE_READY,
-                            statusMessage = "Código generado. Verifica en WhatsApp."
+                            statusMessage = "Código generado. Verifica en WhatsApp.",
+                            errorMessage = null
                         )
                     }
                 }
                 is Result.Error -> {
-                    _uiState.update {
-                        it.copy(
-                            isLoading = false,
-                            errorMessage = "No se pudo obtener el código. ${result.message}"
-                        )
+                    // Gracia: esperar unos segundos antes de mostrar error,
+                    // e intentar obtener el código desde el estado.
+                    val start = System.currentTimeMillis()
+                    val graceMs = 15000L
+                    var resolved = false
+                    while (System.currentTimeMillis() - start < graceMs) {
+                        delay(2000)
+                        when (val st = whatsAppRepository.getSessionStatus()) {
+                            is Result.Success -> {
+                                val session = st.data
+                                val newLinkCode = session.linkCode?.chunked(4)?.joinToString("-")
+                                if (!newLinkCode.isNullOrEmpty() || session.status == SessionStatus.CONNECTED) {
+                                    _uiState.update {
+                                        it.copy(
+                                            isLoading = false,
+                                            linkCode = newLinkCode ?: it.linkCode,
+                                            sessionStatus = session.status,
+                                            statusMessage = if (session.status == SessionStatus.CONNECTED)
+                                                "¡Conectado exitosamente! ✅" else "Código generado. Verifica en WhatsApp.",
+                                            errorMessage = null
+                                        )
+                                    }
+                                    resolved = true
+                                    break
+                                }
+                            }
+                            else -> { /* ignorar errores transitorios */ }
+                        }
+                    }
+                    if (!resolved) {
+                        _uiState.update {
+                            it.copy(
+                                isLoading = false,
+                                errorMessage = "No se pudo obtener el código. ${result.message}"
+                            )
+                        }
                     }
                 }
                 is Result.Loading -> {}
@@ -197,6 +228,7 @@ class WhatsAppViewModel @Inject constructor(
     private fun startPollingStatus() {
         pollingJob?.cancel()
         pollingJob = viewModelScope.launch {
+            var previousStatus: SessionStatus? = null
             while (true) {
                 delay(3000) // Polling cada 3 segundos
 
@@ -207,6 +239,21 @@ class WhatsAppViewModel @Inject constructor(
                         // Si hay linkCode en la sesión y no tenemos uno, usarlo
                         val currentLinkCode = _uiState.value.linkCode
                         val newLinkCode = session.linkCode?.chunked(4)?.joinToString("-")
+
+                        // Detectar pérdida de sesión: si antes estaba conectado y ahora no
+                        if (previousStatus == SessionStatus.CONNECTED && session.status != SessionStatus.CONNECTED) {
+                            _uiState.update {
+                                it.copy(
+                                    sessionStatus = session.status,
+                                    statusMessage = "La sesión de WhatsApp se perdió.",
+                                    sessionLost = true,
+                                    errorMessage = null
+                                )
+                            }
+                            // Detener el polling hasta que el usuario decida reiniciar
+                            pollingJob?.cancel()
+                            return@launch
+                        }
 
                         _uiState.update {
                             it.copy(
@@ -222,7 +269,8 @@ class WhatsAppViewModel @Inject constructor(
                                     SessionStatus.LINK_CODE_READY -> "Esperando confirmación en WhatsApp..."
                                     SessionStatus.FAILED -> "Error en la conexión"
                                     else -> it.statusMessage
-                                }
+                                },
+                                errorMessage = null
                             )
                         }
 
@@ -231,12 +279,32 @@ class WhatsAppViewModel @Inject constructor(
                             session.status == SessionStatus.FAILED) {
                             pollingJob?.cancel()
                         }
+
+                        previousStatus = session.status
                     }
                     is Result.Error -> {
                         // No actualizar error durante polling para no molestar
                     }
                     is Result.Loading -> {}
                 }
+            }
+        }
+    }
+
+    /**
+     * Usuario confirma que vio el aviso de sesión perdida y desea volver a inicio.
+     * Cierra la sesión remota y resetea el estado a desconectado.
+     */
+    fun handleSessionLostReturnToLogin() {
+        viewModelScope.launch {
+            pollingJob?.cancel()
+            whatsAppRepository.closeSession()
+            _uiState.update {
+                WhatsAppUiState(
+                    sessionStatus = SessionStatus.DISCONNECTED,
+                    statusMessage = "Sesión finalizada. Puedes iniciar una nueva.",
+                    sessionLost = false
+                )
             }
         }
     }
@@ -387,5 +455,6 @@ data class WhatsAppUiState(
     val statusMessage: String? = null,
     val errorMessage: String? = null,
     val testPhone: String = "",
-    val testMessageStatus: String? = null
+    val testMessageStatus: String? = null,
+    val sessionLost: Boolean = false
 )

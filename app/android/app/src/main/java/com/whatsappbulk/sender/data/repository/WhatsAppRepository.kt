@@ -8,6 +8,9 @@ import com.whatsappbulk.sender.domain.model.SessionStatus
 import com.whatsappbulk.sender.domain.model.WhatsAppSession
 import com.whatsappbulk.sender.domain.repository.IWhatsAppRepository
 import kotlinx.coroutines.delay
+import okhttp3.MediaType.Companion.toMediaType
+import okhttp3.MultipartBody
+import okhttp3.RequestBody.Companion.toRequestBody
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -201,9 +204,20 @@ class WhatsAppRepository @Inject constructor(
 
     override suspend fun sendImage(phone: String, imageBytes: ByteArray, caption: String): Result<String> {
         return try {
-            // TODO: Implementar envío de imagen cuando el backend lo soporte
-            // Por ahora, solo enviamos el caption como mensaje de texto
-            sendMessage(phone, caption)
+            val imgBody = imageBytes.toRequestBody("image/*".toMediaType())
+            val part = MultipartBody.Part.createFormData("image", "image.jpg", imgBody)
+            val phoneBody = phone.toRequestBody(MultipartBody.FORM)
+            val captionBody = if (caption.isNotEmpty()) caption.toRequestBody(MultipartBody.FORM) else null
+            val response = api.sendImage(phone = phoneBody, caption = captionBody, image = part)
+
+            if (response.isSuccessful && response.body()?.success == true) {
+                val messageId = response.body()!!.data?.id ?: "unknown"
+                Result.Success(messageId)
+            } else {
+                Result.Error(
+                    response.body()?.error ?: "Error al enviar imagen"
+                )
+            }
         } catch (e: Exception) {
             Result.Error(
                 "Error al enviar imagen: ${e.message}",
