@@ -58,7 +58,14 @@ class AuthRepository @Inject constructor(
                     Result.Error(body?.error ?: body?.message ?: "Error de autenticación")
                 }
             } else {
-                Result.Error("Error de red: ${response.code()}")
+                val code = response.code()
+                val errorBody = try { response.errorBody()?.string() } catch (e: Exception) { null }
+                val message = when (code) {
+                    401, 403 -> "Error de autenticación: usuario o contraseña incorrectos"
+                    400 -> "Solicitud inválida"
+                    else -> null
+                }
+                Result.Error(message ?: (errorBody ?: "Error de red: $code"))
             }
         } catch (e: Exception) {
             Result.Error("Error de conexión: ${e.message}", e)

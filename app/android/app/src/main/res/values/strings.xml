@@ -1,5 +1,5 @@
 <resources>
-    <string name="app_name">WhatsApp Bulk Sender</string>
+    <string name="app_name">WhatsAyacape</string>
     <!-- Splash Screen -->
     <string name="splash_checking_connection">Verificando conexión con el servidor...</string>
 

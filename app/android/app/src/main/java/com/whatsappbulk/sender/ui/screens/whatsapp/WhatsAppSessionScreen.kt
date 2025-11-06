@@ -94,6 +94,11 @@ fun WhatsAppSessionScreen(
                         style = MaterialTheme.typography.bodyMedium
                     )
                 }
+            } else if (uiState.sessionLost) {
+                // Pantalla de sesión perdida
+                LostSessionContent(
+                    onReturnToLogin = viewModel::handleSessionLostReturnToLogin
+                )
             } else {
                 // Contenido principal
                 Column(
@@ -534,6 +539,35 @@ fun ConnectedContent(
         modifier = Modifier.fillMaxWidth()
     ) {
         Text(stringResource(id = com.whatsappbulk.sender.R.string.go_to_campaigns))
+    }
+}
+
+@Composable
+fun LostSessionContent(
+    onReturnToLogin: () -> Unit
+) {
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(24.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.Center
+    ) {
+        Text(
+            text = "Sesión de WhatsApp perdida",
+            style = MaterialTheme.typography.headlineSmall,
+            color = MaterialTheme.colorScheme.error
+        )
+        Spacer(modifier = Modifier.height(12.dp))
+        Text(
+            text = "La sesión se ha desconectado. Para evitar bloqueos por intentos de código, no generaremos uno automáticamente.",
+            style = MaterialTheme.typography.bodyMedium,
+            textAlign = TextAlign.Center
+        )
+        Spacer(modifier = Modifier.height(24.dp))
+        Button(onClick = onReturnToLogin, modifier = Modifier.fillMaxWidth()) {
+            Text("Volver al inicio de sesión")
+        }
     }
 }
 

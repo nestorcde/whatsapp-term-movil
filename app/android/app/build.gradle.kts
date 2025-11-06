@@ -150,3 +150,40 @@ dependencies {
 kapt {
     correctErrorTypes = true
 }
+
+// Copy custom launcher icons from app/iconos into res mipmap folders
+tasks.register<Copy>("copyCustomLauncherIcons") {
+    // Module dir is app/android/app; custom icons live in app/iconos
+    val base = project.file("../../iconos")
+    into("src/main/res")
+
+    val dpis = listOf("mdpi","hdpi","xhdpi","xxhdpi","xxxhdpi")
+    dpis.forEach { dpi ->
+        // Remove default webp variants to avoid duplicate resources
+        doFirst {
+            delete(
+                "src/main/res/mipmap-$dpi/ic_launcher.webp",
+                "src/main/res/mipmap-$dpi/ic_launcher_round.webp"
+            )
+        }
+        // ic_launcher.png -> ic_launcher.png
+        from(file("$base/mipmap-$dpi/ic_launcher.png")) {
+            into("mipmap-$dpi")
+            rename { "ic_launcher.png" }
+        }
+        // duplicate as foreground for adaptive icon
+        from(file("$base/mipmap-$dpi/ic_launcher.png")) {
+            into("mipmap-$dpi")
+            rename { "ic_launcher_foreground.png" }
+        }
+        // duplicate as round icon too (fallback)
+        from(file("$base/mipmap-$dpi/ic_launcher.png")) {
+            into("mipmap-$dpi")
+            rename { "ic_launcher_round.png" }
+        }
+    }
+}
+
+tasks.named("preBuild").configure {
+    dependsOn("copyCustomLauncherIcons")
+}
