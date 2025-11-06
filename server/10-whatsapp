@@ -1,0 +1,57 @@
+#!/data/data/com.termux/files/usr/bin/bash
+set -Eeuo pipefail
+
+# ====== LOG ======
+exec >"$HOME/.termux/boot/server.log" 2>&1
+echo "=== $(date '+%F %T') BOOT START ==="
+
+# ====== BASICS ======
+termux-wake-lock || true
+export PREFIX="/data/data/com.termux/files/usr"
+export PATH="$PREFIX/bin:$PATH"
+export HOME="/data/data/com.termux/files/home"
+umask 022
+cd "$HOME/.termux/boot"
+
+# ====== ESPERAR BOOT & RED ======
+for i in {1..30}; do
+  if [ "$(getprop sys.boot_completed 2>/dev/null || echo 0)" = "1" ]; then break; fi
+  sleep 1
+done
+
+for i in {1..120}; do
+  if "$PREFIX/bin/ping" -c1 -W1 1.1.1.1 >/dev/null 2>&1 \
+     || "$PREFIX/bin/curl" -s --max-time 2 https://www.google.com >/dev/null 2>&1; then
+    break
+  fi
+  sleep 2
+done
+
+# ====== REPO (siempre limpio) ======
+REPO_URL="https://github.com/nestorcde/whatsapp-term-movil.git"
+APP_DIR="$HOME/.termux/boot/whatsapp-term-movil"
+
+echo "→ limpieza del directorio del proyecto"
+rm -rf "$APP_DIR"
+
+echo "→ git clone"
+git clone "$REPO_URL" "$APP_DIR"
+
+# ====== PUPPETEER/TERMUX ======
+export PUPPETEER_SKIP_DOWNLOAD=1
+export PUPPETEER_EXECUTABLE_PATH="$PREFIX/bin/chromium-browser"
+npm set puppeteer_skip_download true >/dev/null 2>&1 || true
+
+# ====== INSTALAR (en segundo plano) ======
+cd "$APP_DIR/server"
+chmod +x ./install_termux.sh || true
+command -v dos2unix >/dev/null 2>&1 && dos2unix ./install_termux.sh || true
+
+echo "→ ejecutando install_termux.sh (background con nohup)"
+# Salida propia del instalador:
+INSTALL_LOG="$HOME/.termux/boot/install.out"
+nohup "$PREFIX/bin/bash" ./install_termux.sh >"$INSTALL_LOG" 2>&1 & disown
+
+echo "PID install_termux.sh: $!" 
+echo "Log instalador: $INSTALL_LOG"
+echo "=== $(date '+%F %T') BOOT DONE (script salió; servicio seguirá en background) ==="
