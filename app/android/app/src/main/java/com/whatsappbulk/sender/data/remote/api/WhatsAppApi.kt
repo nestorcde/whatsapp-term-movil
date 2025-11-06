@@ -1,5 +1,6 @@
 package com.whatsappbulk.sender.data.remote.api
 
+import com.google.gson.JsonObject
 import com.whatsappbulk.sender.data.remote.dto.*
 import retrofit2.Response
 import retrofit2.http.*
@@ -40,7 +41,7 @@ interface WhatsAppApi {
      * Verificar si está conectado
      */
     @GET("api/auth/check")
-    suspend fun checkConnection(): Response<ApiResponse<Map<String, Boolean>>>
+    suspend fun checkConnection(): Response<ApiResponse<CheckConnectionDto>>
 
     /**
      * Cerrar sesión

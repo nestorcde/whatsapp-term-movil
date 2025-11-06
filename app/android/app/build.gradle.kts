@@ -40,10 +40,74 @@ android {
 
     buildTypes {
         release {
+            // Restore standard release (minified)
             isMinifyEnabled = true
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"
+            )
+            signingConfig = signingConfigs.getByName("debug")
+        }
+
+        // Additional build type for testing without minification
+        create("releaseNoMinify") {
+            initWith(getByName("release"))
+            isMinifyEnabled = false
+            isShrinkResources = false
+            // Keep same signing for convenience
+            signingConfig = signingConfigs.getByName("debug")
+            // Ensure tasks resolve similarly to release
+            matchingFallbacks += listOf("release")
+        }
+
+        // Additional build type for testing WITH minification isolated (baseline)
+        create("releaseMinify") {
+            initWith(getByName("release"))
+            isMinifyEnabled = true
+            isShrinkResources = false
+            signingConfig = signingConfigs.getByName("debug")
+            matchingFallbacks += listOf("release")
+        }
+
+        // Stage 0: Minify enabled but no shrink/opt/obfuscation (via rules)
+        create("releaseMinify0") {
+            initWith(getByName("release"))
+            isMinifyEnabled = true
+            isShrinkResources = false
+            signingConfig = signingConfigs.getByName("debug")
+            matchingFallbacks += listOf("release")
+            proguardFiles(
+                getDefaultProguardFile("proguard-android.txt"),
+                "proguard-rules.pro",
+                "proguard-minify0.pro"
+            )
+        }
+
+        // Stage 1: Shrink only
+        create("releaseMinify1") {
+            initWith(getByName("release"))
+            isMinifyEnabled = true
+            isShrinkResources = false
+            signingConfig = signingConfigs.getByName("debug")
+            matchingFallbacks += listOf("release")
+            proguardFiles(
+                getDefaultProguardFile("proguard-android.txt"),
+                "proguard-rules.pro",
+                "proguard-minify1.pro"
+            )
+        }
+
+        // Stage 2: Shrink + optimize (no obfuscation)
+        create("releaseMinify2") {
+            initWith(getByName("release"))
+            isMinifyEnabled = true
+            isShrinkResources = false
+            signingConfig = signingConfigs.getByName("debug")
+            matchingFallbacks += listOf("release")
+            proguardFiles(
+                getDefaultProguardFile("proguard-android-optimize.txt"),
+                "proguard-rules.pro",
+                "proguard-minify2.pro"
             )
         }
     }

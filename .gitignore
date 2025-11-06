@@ -58,3 +58,4 @@ app/android/local.properties
 app/ios/Pods/
 app/ios/build/
 app/ios/*.xcworkspace/xcuserdata/
+app/android/whatsapp-bulk-sender.keystore

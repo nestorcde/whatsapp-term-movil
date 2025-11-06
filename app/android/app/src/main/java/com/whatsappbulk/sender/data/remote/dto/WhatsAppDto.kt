@@ -59,3 +59,9 @@ data class MessageDto(
     @SerializedName("ack")
     val ack: Int
 )
+
+// DTO para check de conexión
+data class CheckConnectionDto(
+    @SerializedName("isConnected")
+    val isConnected: Boolean = false
+)

@@ -1,6 +1,7 @@
 package com.whatsappbulk.sender.di
 
 import android.content.Context
+import android.content.SharedPreferences
 import androidx.security.crypto.EncryptedSharedPreferences
 import androidx.security.crypto.MasterKey
 import com.whatsappbulk.sender.BuildConfig
@@ -51,25 +52,50 @@ object NetworkModule {
     @Provides
     @Singleton
     @AuthInterceptor
-    fun provideAuthInterceptor(@ApplicationContext context: Context): Interceptor {
+    fun provideAuthInterceptor(
+        @ApplicationContext context: Context,
+        encryptedPrefs: SharedPreferences
+    ): Interceptor {
         return Interceptor { chain ->
-            val masterKey = MasterKey.Builder(context)
-                .setKeyScheme(MasterKey.KeyScheme.AES256_GCM)
-                .build()
-
-            val encryptedPrefs = EncryptedSharedPreferences.create(
-                context,
-                "auth_prefs",
-                masterKey,
-                EncryptedSharedPreferences.PrefKeyEncryptionScheme.AES256_SIV,
-                EncryptedSharedPreferences.PrefValueEncryptionScheme.AES256_GCM
-            )
             val token = encryptedPrefs.getString("jwt_token", null)
             val req = chain.request()
             val newReq = if (!token.isNullOrEmpty()) {
                 req.newBuilder().addHeader("Authorization", "Bearer $token").build()
             } else req
             chain.proceed(newReq)
+        }
+    }
+
+    @Provides
+    @Singleton
+    fun provideEncryptedPrefs(@ApplicationContext context: Context): SharedPreferences {
+        // Create or recover MasterKey
+        val masterKey = MasterKey.Builder(context)
+            .setKeyScheme(MasterKey.KeyScheme.AES256_GCM)
+            .build()
+
+        fun create(): SharedPreferences = EncryptedSharedPreferences.create(
+            context,
+            "auth_prefs",
+            masterKey,
+            EncryptedSharedPreferences.PrefKeyEncryptionScheme.AES256_SIV,
+            EncryptedSharedPreferences.PrefValueEncryptionScheme.AES256_GCM
+        )
+
+        return try {
+            create()
+        } catch (e: Exception) {
+            // Handle corrupted keyset or master key mismatch without crashing
+            // Clear the stored prefs to allow regeneration and avoid app crash.
+            try {
+                context.deleteSharedPreferences("auth_prefs")
+            } catch (_: Exception) { }
+            try {
+                create()
+            } catch (_: Exception) {
+                // As a last resort, fall back to non-encrypted prefs to keep app functional.
+                context.getSharedPreferences("auth_prefs_fallback", Context.MODE_PRIVATE)
+            }
         }
     }
 

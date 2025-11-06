@@ -144,18 +144,14 @@ class WhatsAppRepository @Inject constructor(
     override suspend fun checkConnection(): Result<Boolean> {
         return try {
             val response = api.checkConnection()
-
             if (response.isSuccessful && response.body()?.success == true) {
-                val isConnected = response.body()!!.data?.get("isConnected") ?: false
+                val isConnected = response.body()?.data?.isConnected ?: false
                 Result.Success(isConnected)
             } else {
                 Result.Success(false)
             }
         } catch (e: Exception) {
-            Result.Error(
-                "Error al verificar conexión: ${e.message}",
-                e
-            )
+            Result.Error("Error al verificar conexión: ${e.message}", e)
         }
     }
 
