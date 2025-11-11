@@ -2,7 +2,7 @@
 set -Eeuo pipefail
 
 echo "=================================================="
-echo " WhatsApp Termux API - Install & Start (sharp 0.34.3 + wasm)"
+echo " WhatsApp Termux API - Install & Start (sharp 0.34.3 + WASM)"
 echo "=================================================="
 echo
 
@@ -49,18 +49,22 @@ export PUPPETEER_SKIP_CHROMIUM_DOWNLOAD=true
 export PUPPETEER_EXECUTABLE_PATH="$CHROME_BIN"
 export CHROME_PATH="$CHROME_BIN"
 export PUPPETEER_ARGS="--headless=new --no-sandbox --disable-setuid-sandbox --disable-dev-shm-usage --disable-gpu --proxy-server=direct:// --no-proxy-server"
+
+# Fuerza WASM en instalación y en runtime
 export SHARP_BACKEND=wasm
 export SHARP_IGNORE_GLOBAL_LIBVIPS=1
+export npm_config_sharp_backend=wasm    # <- CLAVE: el instalador de sharp lee esto
 
-# --- .npmrc del proyecto para evitar EBADPLATFORM en futuras corridas ---
+# --- .npmrc del proyecto para futuras corridas (evita EBADPLATFORM) ---
 cat > .npmrc <<NPMRC
 arch=wasm32
 force=true
 audit=false
 fund=false
+sharp_backend=wasm
 NPMRC
 
-# --- Pin: sharp y wasm32 en 0.34.3 (sin overrides conflictivos) ---
+# --- Pin exacto: sharp y wasm32 en 0.34.3 (sin anidar overrides raros) ---
 echo "📝 Pin sharp@0.34.3 y @img/sharp-wasm32@0.34.3…"
 cp package.json "package.json.bak.$(date +%s)" || true
 node - <<'NODE'
@@ -74,13 +78,13 @@ for (const sec of ['dependencies','devDependencies','optionalDependencies']) {
   if (pkg[sec]['@img/sharp-wasm32']) pkg[sec]['@img/sharp-wasm32'] = "0.34.3";
 }
 
-// overrides planos, nada anidado
+// overrides lineales (aplican a todo el árbol)
 pkg.overrides = Object.assign({}, pkg.overrides, {
   "sharp": "0.34.3",
   "@img/sharp-wasm32": "0.34.3"
 });
 
-// postinstall para reasegurar wasm
+// postinstall: reasegurar wasm en misma versión
 pkg.scripts = pkg.scripts || {};
 if (!pkg.scripts.postinstall) {
   pkg.scripts.postinstall = "npm i --no-audit --no-fund @img/sharp-wasm32@0.34.3 || true";
@@ -90,27 +94,32 @@ fs.writeFileSync(path, JSON.stringify(pkg, null, 2));
 console.log('✅ package.json listo (sharp 0.34.3 + @img/sharp-wasm32 0.34.3)');
 NODE
 
-# Guardar exacto en este proyecto (sin ^)
+# Guardar exacto en este proyecto (sin ^ ni ~)
 npm --location=project config set save-exact true >/dev/null 2>&1 || true
 
-# --- Instalar deps desde cero (arch=wasm32 + force) ---
+# --- Instalar deps desde cero (arch=wasm32 + force, y backend wasm para sharp) ---
 echo "🧽 Limpiando node_modules y lockfile…"
 rm -rf node_modules package-lock.json
 
-echo "📥 npm install (arch=wasm32 + force)…"
-npm_config_arch=wasm32 npm_config_force=true npm install --no-audit --no-fund
+echo "📥 npm install (wasm)…"
+npm_config_arch=wasm32 npm_config_force=true npm_config_sharp_backend=wasm \
+  npm install --no-audit --no-fund
 
-# --- Reasegurar wasm exacto ---
+# --- Reasegurar wasm exacto (por si algún postinstall pisó algo) ---
 echo "🖼️ Reasegurando @img/sharp-wasm32@0.34.3…"
-npm_config_arch=wasm32 npm_config_force=true npm i --no-audit --no-fund @img/sharp-wasm32@0.34.3 || true
+npm_config_arch=wasm32 npm_config_force=true npm_config_sharp_backend=wasm \
+  npm i --no-audit --no-fund @img/sharp-wasm32@0.34.3 || true
+
+# --- Quitar cualquier binario nativo de sharp en TODO el árbol ---
+echo "🧹 Borrando binarios nativos de sharp (*.node) para forzar WASM…"
+find node_modules -type f -path "*/sharp/build/Release/*.node" -delete 2>/dev/null || true
 
 # --- Quitar sharp anidado típico de wppconnect (si aparece) ---
-echo "🧹 Eliminando sharp anidado en wppconnect (si existe)…"
 rm -rf node_modules/@wppconnect-team/wppconnect/node_modules/sharp || true
 
-# ⛔ No ejecutar `npm dedupe` (causa EBADPLATFORM en boot)
+# ⛔ NO ejecutar `npm dedupe` (provoca EBADPLATFORM en boot)
 
-# --- Verificar sharp en WASM (ENV INLINE) ---
+# --- Verificar Sharp/WASM (ENV inline para que aplique sí o sí) ---
 echo "🔎 Verificando Sharp/WASM…"
 env SHARP_BACKEND=wasm SHARP_IGNORE_GLOBAL_LIBVIPS=1 \
   node -e "try{const s=require('sharp');console.log('✅ sharp OK (WASM):', s.versions)}catch(e){console.error('❌ sharp no cargó:', e.message);process.exit(1)}"
@@ -151,7 +160,7 @@ fi
 PORT="$(node -e "try{console.log((require('./config.json')?.server?.port)||process.env.PORT||3000)}catch(e){console.log(process.env.PORT||3000)}" 2>/dev/null || echo 3000)"
 echo
 echo "=================================================="
-echo "✅ Instalación + Build OK (sharp 0.34.3 + wasm)"
+echo "✅ Instalación + Build OK (sharp 0.34.3 + WASM)"
 echo "=================================================="
 echo "🌐 Puerto: ${PORT}"
 echo "📍 URL local:   http://localhost:${PORT}"
