@@ -1,130 +1,103 @@
 #!/data/data/com.termux/files/usr/bin/bash
-set -Eeuo pipefail
+set -euo pipefail
 
 echo "=================================================="
-echo " WhatsApp Termux API - Install & Start (sharp 0.34.3 + WASM)"
+echo " WhatsApp Termux API - Install & Start (Sharp 0.34.3 + WASM)"
 echo "=================================================="
 echo
 
-# --- Validación ---
-if [ ! -f package.json ]; then
-  echo "❌ No se encontró package.json en el directorio actual."
-  echo "   Ubicate en ~/whatsapp-term-movil/server y reintentá."
-  exit 1
-fi
+# Validación
+[ -f package.json ] || { echo "❌ Ejecuta este script en ~/whatsapp-term-movil/server"; exit 1; }
 
-PREFIX="/data/data/com.termux/files/usr"
-CHROME_BIN="$PREFIX/bin/chromium-browser"
-
-# --- Paquetes base ---
+# Paquetes base (silencioso)
 yes | pkg update -y >/dev/null 2>&1 || true
-yes | pkg install -y x11-repo chromium fontconfig ttf-dejavu git nodejs curl jq >/dev/null 2>&1 || true
+yes | pkg install -y x11-repo >/dev/null 2>&1 || true
+yes | pkg install -y chromium fontconfig ttf-dejavu git nodejs curl jq >/dev/null 2>&1 || true
 
-# --- Detectar Chromium ---
+# Detectar Chromium
+CHROME_BIN="/data/data/com.termux/files/usr/bin/chromium-browser"
 if [ ! -x "$CHROME_BIN" ]; then
   if command -v chromium >/dev/null 2>&1; then
     CHROME_BIN="$(command -v chromium)"
   elif command -v headless_shell >/dev/null 2>&1; then
     CHROME_BIN="$(command -v headless_shell)"
   else
-    echo "❌ Chromium no encontrado. Instalá: pkg install -y x11-repo chromium"
-    exit 1
+    echo "❌ Chromium no encontrado. Instala: pkg install -y x11-repo chromium"; exit 1
   fi
 fi
 echo "🧭 Chromium: $CHROME_BIN"
 "$CHROME_BIN" --version || true
 echo
 
-# --- Limpiar proxies ---
+# Limpiar proxies
 unset http_proxy https_proxy HTTP_PROXY HTTPS_PROXY ALL_PROXY NO_PROXY no_proxy || true
 npm config delete proxy >/dev/null 2>&1 || true
 npm config delete https-proxy >/dev/null 2>&1 || true
 git config --global --unset http.proxy >/dev/null 2>&1 || true
 git config --global --unset https.proxy >/dev/null 2>&1 || true
 
-# --- Entorno Puppeteer + Sharp WASM ---
-export PATH="$PREFIX/bin:$PATH"
+# Entorno para puppeteer & sharp
 export PUPPETEER_SKIP_DOWNLOAD=1
 export PUPPETEER_SKIP_CHROMIUM_DOWNLOAD=true
 export PUPPETEER_EXECUTABLE_PATH="$CHROME_BIN"
 export CHROME_PATH="$CHROME_BIN"
 export PUPPETEER_ARGS="--headless=new --no-sandbox --disable-setuid-sandbox --disable-dev-shm-usage --disable-gpu --proxy-server=direct:// --no-proxy-server"
 
-# Fuerza WASM en instalación y en runtime
+# Claves para sharp wasm
 export SHARP_BACKEND=wasm
 export SHARP_IGNORE_GLOBAL_LIBVIPS=1
-export npm_config_sharp_backend=wasm    # <- CLAVE: el instalador de sharp lee esto
+export npm_config_arch=wasm32
+export npm_config_force=true
 
-# --- .npmrc del proyecto para futuras corridas (evita EBADPLATFORM) ---
-cat > .npmrc <<NPMRC
-arch=wasm32
-force=true
-audit=false
-fund=false
-sharp_backend=wasm
-NPMRC
-
-# --- Pin exacto: sharp y wasm32 en 0.34.3 (sin anidar overrides raros) ---
+# 1) Fijar EXACTAMENTE sharp y wasm a 0.34.3
 echo "📝 Pin sharp@0.34.3 y @img/sharp-wasm32@0.34.3…"
 cp package.json "package.json.bak.$(date +%s)" || true
 node - <<'NODE'
 const fs = require('fs');
-const path = 'package.json';
-const pkg = JSON.parse(fs.readFileSync(path, 'utf8'));
-
-for (const sec of ['dependencies','devDependencies','optionalDependencies']) {
-  if (!pkg[sec]) continue;
-  if (pkg[sec].sharp) pkg[sec].sharp = "0.34.3";
-  if (pkg[sec]['@img/sharp-wasm32']) pkg[sec]['@img/sharp-wasm32'] = "0.34.3";
-}
-
-// overrides lineales (aplican a todo el árbol)
-pkg.overrides = Object.assign({}, pkg.overrides, {
+const p = JSON.parse(fs.readFileSync('package.json','utf8'));
+p.dependencies = p.dependencies || {};
+p.dependencies.sharp = "0.34.3";
+p.dependencies["@img/sharp-wasm32"] = "0.34.3";
+p.overrides = Object.assign({}, p.overrides, {
   "sharp": "0.34.3",
-  "@img/sharp-wasm32": "0.34.3"
+  "@img/sharp-wasm32": "0.34.3",
+  "@wppconnect-team/wppconnect": { "sharp": "0.34.3" }
 });
-
-// postinstall: reasegurar wasm en misma versión
-pkg.scripts = pkg.scripts || {};
-if (!pkg.scripts.postinstall) {
-  pkg.scripts.postinstall = "npm i --no-audit --no-fund @img/sharp-wasm32@0.34.3 || true";
-}
-
-fs.writeFileSync(path, JSON.stringify(pkg, null, 2));
-console.log('✅ package.json listo (sharp 0.34.3 + @img/sharp-wasm32 0.34.3)');
+p.scripts = p.scripts || {};
+// no uses npm_config_arch aquí: lo fuerza el entorno
+p.scripts.postinstall = "npm i --no-audit --no-fund @img/sharp-wasm32@0.34.3 || true";
+fs.writeFileSync('package.json', JSON.stringify(p, null, 2));
+console.log("✅ package.json listo (sharp 0.34.3 + @img/sharp-wasm32 0.34.3)");
 NODE
 
-# Guardar exacto en este proyecto (sin ^ ni ~)
-npm --location=project config set save-exact true >/dev/null 2>&1 || true
-
-# --- Instalar deps desde cero (arch=wasm32 + force, y backend wasm para sharp) ---
+# 2) Limpiar instalación previa
 echo "🧽 Limpiando node_modules y lockfile…"
 rm -rf node_modules package-lock.json
 
+# 3) Instalar deps (sin bajar chromium)
 echo "📥 npm install (wasm)…"
-npm_config_arch=wasm32 npm_config_force=true npm_config_sharp_backend=wasm \
-  npm install --no-audit --no-fund
+npm install --no-audit --no-fund
 
-# --- Reasegurar wasm exacto (por si algún postinstall pisó algo) ---
-echo "🖼️ Reasegurando @img/sharp-wasm32@0.34.3…"
-npm_config_arch=wasm32 npm_config_force=true npm_config_sharp_backend=wasm \
-  npm i --no-audit --no-fund @img/sharp-wasm32@0.34.3 || true
-
-# --- Quitar cualquier binario nativo de sharp en TODO el árbol ---
+# 4) Asegurar que NO queden binarios nativos de sharp
 echo "🧹 Borrando binarios nativos de sharp (*.node) para forzar WASM…"
-find node_modules -type f -path "*/sharp/build/Release/*.node" -delete 2>/dev/null || true
-
-# --- Quitar sharp anidado típico de wppconnect (si aparece) ---
+find node_modules -type f -name "*.node" -path "*/sharp/*" -delete 2>/dev/null || true
 rm -rf node_modules/@wppconnect-team/wppconnect/node_modules/sharp || true
 
-# ⛔ NO ejecutar `npm dedupe` (provoca EBADPLATFORM en boot)
-
-# --- Verificar Sharp/WASM (ENV inline para que aplique sí o sí) ---
+# 5) Verificación de sharp con WASM (inyecta var dentro del proceso)
 echo "🔎 Verificando Sharp/WASM…"
-env SHARP_BACKEND=wasm SHARP_IGNORE_GLOBAL_LIBVIPS=1 \
-  node -e "try{const s=require('sharp');console.log('✅ sharp OK (WASM):', s.versions)}catch(e){console.error('❌ sharp no cargó:', e.message);process.exit(1)}"
+node - <<'NODE' || true
+process.env.SHARP_BACKEND = 'wasm';
+process.env.SHARP_IGNORE_GLOBAL_LIBVIPS = '1';
+try {
+  const sharp = require('sharp');
+  console.log('✔ sharp versions:', sharp.versions);
+} catch (e) {
+  console.log('❌ sharp no cargó:', e.message);
+}
+NODE
 
-# --- config.json para Puppeteer → Chromium local ---
+# 6) Escribir config de puppeteer → chromium
+echo "📝 Generando config.json para Chromium headless…"
 cat > config.json <<JSON
 {
   "puppeteerOptions": {
@@ -142,33 +115,25 @@ cat > config.json <<JSON
 }
 JSON
 
-# --- Build (genera dist/) ---
-echo "🔨 Compilando proyecto…"
-if npm run | grep -qE '(^|\\s)build(\\s|:)'; then
-  npm run build
-elif [ -f tsconfig.json ]; then
-  npx tsc -p .
+# 7) Compilar TypeScript (sin depender de shebang)
+echo "🔨 Compilando…"
+if [ -f "node_modules/typescript/lib/tsc.js" ]; then
+  "$PREFIX/bin/node" node_modules/typescript/lib/tsc.js -p .
+else
+  npx -y -p typescript tsc -p .
 fi
 
-# --- Validar dist/ ---
-if [ ! -d dist ]; then
-  echo "❌ No se generó dist/. Revisá logs de build."
-  exit 1
-fi
-
-# --- URLs ---
+# 8) Arrancar el servidor (con WASM asegurado)
 PORT="$(node -e "try{console.log((require('./config.json')?.server?.port)||process.env.PORT||3000)}catch(e){console.log(process.env.PORT||3000)}" 2>/dev/null || echo 3000)"
 echo
 echo "=================================================="
-echo "✅ Instalación + Build OK (sharp 0.34.3 + WASM)"
+echo "✅ Instalación completada"
 echo "=================================================="
 echo "🌐 Puerto: ${PORT}"
-echo "📍 URL local:   http://localhost:${PORT}"
-echo "📍 URL Android: http://127.0.0.1:${PORT}"
+echo "📍 http://127.0.0.1:${PORT}"
 echo "=================================================="
 echo
 
-# --- Iniciar servidor con entorno correcto ---
 echo "🚀 Iniciando servidor…"
 exec env \
   SHARP_BACKEND=wasm \
@@ -177,5 +142,5 @@ exec env \
   PUPPETEER_SKIP_CHROMIUM_DOWNLOAD=true \
   PUPPETEER_EXECUTABLE_PATH="$CHROME_BIN" \
   CHROME_PATH="$CHROME_BIN" \
-  PUPPETEER_ARGS="--headless=new --no-sandbox --disable-setuid-sandbox --disable-dev-shm-usage --disable-gpu --proxy-server=direct:// --no-proxy-server" \
+  PUPPETEER_ARGS="$PUPPETEER_ARGS" \
   npm start
