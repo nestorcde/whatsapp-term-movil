@@ -60,8 +60,8 @@ const fs = require('fs');
 const path = 'package.json';
 const pkg = JSON.parse(fs.readFileSync(path, 'utf8'));
 pkg.overrides = Object.assign({}, pkg.overrides, {
-  "sharp": "^0.34.4",
-  "@wppconnect-team/wppconnect": { "sharp": "^0.34.4" }
+  "sharp": "0.34.3",
+  "@wppconnect-team/wppconnect": { "sharp": "0.34.3" }
 });
 pkg.scripts = pkg.scripts || {};
 if (!pkg.scripts.postinstall) {
