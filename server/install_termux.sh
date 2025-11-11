@@ -52,7 +52,7 @@ export PUPPETEER_ARGS="--headless=new --no-sandbox --disable-setuid-sandbox --di
 export SHARP_BACKEND=wasm
 export SHARP_IGNORE_GLOBAL_LIBVIPS=1
 
-# --- .npmrc del proyecto para anclar arch/force (evita EBADPLATFORM) ---
+# --- .npmrc del proyecto para evitar EBADPLATFORM en futuras corridas ---
 cat > .npmrc <<NPMRC
 arch=wasm32
 force=true
@@ -60,7 +60,7 @@ audit=false
 fund=false
 NPMRC
 
-# --- Pin: sharp y wasm32 en 0.34.3 (SIN estructuras conflictivas) ---
+# --- Pin: sharp y wasm32 en 0.34.3 (sin overrides conflictivos) ---
 echo "📝 Pin sharp@0.34.3 y @img/sharp-wasm32@0.34.3…"
 cp package.json "package.json.bak.$(date +%s)" || true
 node - <<'NODE'
@@ -68,20 +68,19 @@ const fs = require('fs');
 const path = 'package.json';
 const pkg = JSON.parse(fs.readFileSync(path, 'utf8'));
 
-// Ajustar dependencias directas si existen
 for (const sec of ['dependencies','devDependencies','optionalDependencies']) {
   if (!pkg[sec]) continue;
   if (pkg[sec].sharp) pkg[sec].sharp = "0.34.3";
   if (pkg[sec]['@img/sharp-wasm32']) pkg[sec]['@img/sharp-wasm32'] = "0.34.3";
 }
 
-// Overrides simples y planos (evitar estructuras anidadas que generan "Conflicting override sets")
+// overrides planos, nada anidado
 pkg.overrides = Object.assign({}, pkg.overrides, {
   "sharp": "0.34.3",
   "@img/sharp-wasm32": "0.34.3"
 });
 
-// postinstall para reforzar wasm32 exacto si alguien corre "npm i" luego
+// postinstall para reasegurar wasm
 pkg.scripts = pkg.scripts || {};
 if (!pkg.scripts.postinstall) {
   pkg.scripts.postinstall = "npm i --no-audit --no-fund @img/sharp-wasm32@0.34.3 || true";
@@ -94,14 +93,14 @@ NODE
 # Guardar exacto en este proyecto (sin ^)
 npm --location=project config set save-exact true >/dev/null 2>&1 || true
 
-# --- Instalar deps desde cero (siempre con arch=wasm32 + force) ---
+# --- Instalar deps desde cero (arch=wasm32 + force) ---
 echo "🧽 Limpiando node_modules y lockfile…"
 rm -rf node_modules package-lock.json
 
 echo "📥 npm install (arch=wasm32 + force)…"
 npm_config_arch=wasm32 npm_config_force=true npm install --no-audit --no-fund
 
-# --- Reasegurar wasm exacto (por si otra dependencia intentó subirlo) ---
+# --- Reasegurar wasm exacto ---
 echo "🖼️ Reasegurando @img/sharp-wasm32@0.34.3…"
 npm_config_arch=wasm32 npm_config_force=true npm i --no-audit --no-fund @img/sharp-wasm32@0.34.3 || true
 
@@ -109,11 +108,12 @@ npm_config_arch=wasm32 npm_config_force=true npm i --no-audit --no-fund @img/sha
 echo "🧹 Eliminando sharp anidado en wppconnect (si existe)…"
 rm -rf node_modules/@wppconnect-team/wppconnect/node_modules/sharp || true
 
-# ⛔ IMPORTANTE: NO ejecutar `npm dedupe` aquí (causa EBADPLATFORM en boot)
+# ⛔ No ejecutar `npm dedupe` (causa EBADPLATFORM en boot)
 
-# --- Verificar sharp en WASM ---
+# --- Verificar sharp en WASM (ENV INLINE) ---
 echo "🔎 Verificando Sharp/WASM…"
-node -e "try{const s=require('sharp');console.log('✅ sharp OK (WASM):', s.versions)}catch(e){console.error('❌ sharp no cargó:', e.message);process.exit(1)}"
+env SHARP_BACKEND=wasm SHARP_IGNORE_GLOBAL_LIBVIPS=1 \
+  node -e "try{const s=require('sharp');console.log('✅ sharp OK (WASM):', s.versions)}catch(e){console.error('❌ sharp no cargó:', e.message);process.exit(1)}"
 
 # --- config.json para Puppeteer → Chromium local ---
 cat > config.json <<JSON
