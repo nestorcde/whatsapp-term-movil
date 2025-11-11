@@ -6,7 +6,7 @@ echo " WhatsApp Termux API - Install & Start (sharp 0.34.3 + wasm)"
 echo "=================================================="
 echo
 
-# --- Validaciones ---
+# --- Validación ---
 if [ ! -f package.json ]; then
   echo "❌ No se encontró package.json en el directorio actual."
   echo "   Ubicate en ~/whatsapp-term-movil/server y reintentá."
@@ -52,58 +52,64 @@ export PUPPETEER_ARGS="--headless=new --no-sandbox --disable-setuid-sandbox --di
 export SHARP_BACKEND=wasm
 export SHARP_IGNORE_GLOBAL_LIBVIPS=1
 
-# --- Pin: sharp y @img/sharp-wasm32 en 0.34.3 ---
-echo "📝 Pin sharp y wasm32 a 0.34.3…"
+# --- .npmrc del proyecto para anclar arch/force (evita EBADPLATFORM) ---
+cat > .npmrc <<NPMRC
+arch=wasm32
+force=true
+audit=false
+fund=false
+NPMRC
+
+# --- Pin: sharp y wasm32 en 0.34.3 (SIN estructuras conflictivas) ---
+echo "📝 Pin sharp@0.34.3 y @img/sharp-wasm32@0.34.3…"
 cp package.json "package.json.bak.$(date +%s)" || true
 node - <<'NODE'
 const fs = require('fs');
 const path = 'package.json';
 const pkg = JSON.parse(fs.readFileSync(path, 'utf8'));
 
-// overrides global (afecta todas las copias)
-pkg.overrides = Object.assign({}, pkg.overrides, {
-  "sharp": "0.34.3",
-  "@img/sharp-wasm32": "0.34.3",
-  "@wppconnect-team/wppconnect": { "sharp": "0.34.3" }
-});
-
-// si el proyecto declara sharp o @img/sharp-wasm32, fijarlos exactos
+// Ajustar dependencias directas si existen
 for (const sec of ['dependencies','devDependencies','optionalDependencies']) {
   if (!pkg[sec]) continue;
   if (pkg[sec].sharp) pkg[sec].sharp = "0.34.3";
   if (pkg[sec]['@img/sharp-wasm32']) pkg[sec]['@img/sharp-wasm32'] = "0.34.3";
 }
 
-// postinstall para reforzar wasm32@0.34.3 si alguien corre "npm i" luego
+// Overrides simples y planos (evitar estructuras anidadas que generan "Conflicting override sets")
+pkg.overrides = Object.assign({}, pkg.overrides, {
+  "sharp": "0.34.3",
+  "@img/sharp-wasm32": "0.34.3"
+});
+
+// postinstall para reforzar wasm32 exacto si alguien corre "npm i" luego
 pkg.scripts = pkg.scripts || {};
 if (!pkg.scripts.postinstall) {
   pkg.scripts.postinstall = "npm i --no-audit --no-fund @img/sharp-wasm32@0.34.3 || true";
 }
 
 fs.writeFileSync(path, JSON.stringify(pkg, null, 2));
-console.log('✅ package.json overrides: sharp@0.34.3 y @img/sharp-wasm32@0.34.3');
+console.log('✅ package.json listo (sharp 0.34.3 + @img/sharp-wasm32 0.34.3)');
 NODE
 
 # Guardar exacto en este proyecto (sin ^)
 npm --location=project config set save-exact true >/dev/null 2>&1 || true
 
-# --- Instalar deps desde cero (con arch=wasm32 + force para evitar EBADPLATFORM) ---
+# --- Instalar deps desde cero (siempre con arch=wasm32 + force) ---
 echo "🧽 Limpiando node_modules y lockfile…"
 rm -rf node_modules package-lock.json
 
 echo "📥 npm install (arch=wasm32 + force)…"
 npm_config_arch=wasm32 npm_config_force=true npm install --no-audit --no-fund
 
-# --- Reasegurar wasm exacto (por si algún paquete lo movió) ---
+# --- Reasegurar wasm exacto (por si otra dependencia intentó subirlo) ---
 echo "🖼️ Reasegurando @img/sharp-wasm32@0.34.3…"
 npm_config_arch=wasm32 npm_config_force=true npm i --no-audit --no-fund @img/sharp-wasm32@0.34.3 || true
 
-# --- Limpiar sharp anidado y dedupe ---
+# --- Quitar sharp anidado típico de wppconnect (si aparece) ---
 echo "🧹 Eliminando sharp anidado en wppconnect (si existe)…"
 rm -rf node_modules/@wppconnect-team/wppconnect/node_modules/sharp || true
 
-echo "🧩 npm dedupe…"
-npm dedupe || true
+# ⛔ IMPORTANTE: NO ejecutar `npm dedupe` aquí (causa EBADPLATFORM en boot)
 
 # --- Verificar sharp en WASM ---
 echo "🔎 Verificando Sharp/WASM…"
@@ -141,7 +147,7 @@ if [ ! -d dist ]; then
   exit 1
 fi
 
-# --- Mostrar URLs ---
+# --- URLs ---
 PORT="$(node -e "try{console.log((require('./config.json')?.server?.port)||process.env.PORT||3000)}catch(e){console.log(process.env.PORT||3000)}" 2>/dev/null || echo 3000)"
 echo
 echo "=================================================="
