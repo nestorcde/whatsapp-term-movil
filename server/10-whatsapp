@@ -5,53 +5,105 @@ set -Eeuo pipefail
 exec >"$HOME/.termux/boot/server.log" 2>&1
 echo "=== $(date '+%F %T') BOOT START ==="
 
-# ====== BASICS ======
+# ====== ENTORNO ======
 termux-wake-lock || true
 export PREFIX="/data/data/com.termux/files/usr"
 export PATH="$PREFIX/bin:$PATH"
 export HOME="/data/data/com.termux/files/home"
 umask 022
-cd "$HOME/.termux/boot"
+cd "$HOME"
 
 # ====== ESPERAR BOOT & RED ======
 for i in {1..30}; do
-  if [ "$(getprop sys.boot_completed 2>/dev/null || echo 0)" = "1" ]; then break; fi
+  [[ "$(getprop sys.boot_completed 2>/dev/null || echo 0)" = "1" ]] && break
   sleep 1
 done
-
 for i in {1..120}; do
-  if "$PREFIX/bin/ping" -c1 -W1 1.1.1.1 >/dev/null 2>&1 \
-     || "$PREFIX/bin/curl" -s --max-time 2 https://www.google.com >/dev/null 2>&1; then
+  if "$PREFIX/bin/ping" -c1 -W1 1.1.1.1 >/dev/null 2>&1 || \
+     "$PREFIX/bin/curl" -fsS --max-time 2 https://www.google.com >/dev/null 2>&1; then
     break
   fi
   sleep 2
 done
 
-# ====== REPO (siempre limpio) ======
+# ====== HELPERS PKG SIN 'yes |' ======
+retry() { # retry <cmd...>
+  local n=0; local max=3
+  until "$@"; do
+    n=$((n+1)); [[ $n -ge $max ]] && return 1
+    sleep 2
+  done
+}
+
+pkg_update() {
+  echo "→ pkg update -y"
+  retry pkg update -y || true
+}
+
+pkg_install_if_missing() { # pkg_install_if_missing <pkg1> <pkg2> ...
+  local to_install=()
+  for p in "$@"; do
+    dpkg -s "$p" >/dev/null 2>&1 || to_install+=("$p")
+  done
+  if (( ${#to_install[@]} )); then
+    echo "→ pkg install -y ${to_install[*]}"
+    retry pkg install -y "${to_install[@]}" || true
+  else
+    echo "→ paquetes ya presentes: $*"
+  fi
+}
+
+# ====== PRE-REQS: x11-repo + chromium ANTES de tu instalador ======
+pkg_update
+pkg_install_if_missing x11-repo
+pkg_update
+pkg_install_if_missing chromium fontconfig ttf-dejavu git nodejs curl jq dos2unix
+
+# Detectar chromium/headless
+CHROME_BIN="$PREFIX/bin/chromium-browser"
+if [[ ! -x "$CHROME_BIN" ]]; then
+  if command -v chromium >/dev/null 2>&1; then
+    CHROME_BIN="$(command -v chromium)"
+  elif command -v headless_shell >/dev/null 2>&1; then
+    CHROME_BIN="$(command -v headless_shell)"
+  else
+    echo "❌ Chromium no disponible. Verifica x11-repo y chromium."
+    exit 1
+  fi
+fi
+echo "🧭 Chromium: $CHROME_BIN"
+"$CHROME_BIN" --version || true
+
+# ====== REPO LIMPIO ======
 REPO_URL="https://github.com/nestorcde/whatsapp-term-movil.git"
-APP_DIR="$HOME/.termux/boot/whatsapp-term-movil"
+APP_DIR="$HOME/whatsapp-term-movil"
+SRV_DIR="$APP_DIR/server"
 
-echo "→ limpieza del directorio del proyecto"
+echo "→ limpiando repo previo en: $APP_DIR"
 rm -rf "$APP_DIR"
-
 echo "→ git clone"
 git clone "$REPO_URL" "$APP_DIR"
 
-# ====== PUPPETEER/TERMUX ======
+# Normalizar saltos de línea del instalador
+command -v dos2unix >/dev/null 2>&1 && dos2unix "$SRV_DIR/install_termux.sh" >/dev/null 2>&1 || true
+chmod +x "$SRV_DIR/install_termux.sh"
+
+# ====== ENTORNO RUNTIME (Puppeteer/Sharp) ======
 export PUPPETEER_SKIP_DOWNLOAD=1
-export PUPPETEER_EXECUTABLE_PATH="$PREFIX/bin/chromium-browser"
-npm set puppeteer_skip_download true >/dev/null 2>&1 || true
+export PUPPETEER_SKIP_CHROMIUM_DOWNLOAD=true
+export PUPPETEER_EXECUTABLE_PATH="$CHROME_BIN"
+export CHROME_PATH="$CHROME_BIN"
+export PUPPETEER_ARGS="--headless=new --no-sandbox --disable-setuid-sandbox --disable-dev-shm-usage --disable-gpu --proxy-server=direct:// --no-proxy-server"
 
-# ====== INSTALAR (en segundo plano) ======
-cd "$APP_DIR/server"
-chmod +x ./install_termux.sh || true
-command -v dos2unix >/dev/null 2>&1 && dos2unix ./install_termux.sh || true
+# Forzar WASM para sharp
+export SHARP_BACKEND=wasm
+export SHARP_IGNORE_GLOBAL_LIBVIPS=1
+export npm_config_arch=wasm32
+export npm_config_force=true
 
-echo "→ ejecutando install_termux.sh (background con nohup)"
-# Salida propia del instalador:
-INSTALL_LOG="$HOME/.termux/boot/install.out"
-nohup "$PREFIX/bin/bash" ./install_termux.sh >"$INSTALL_LOG" 2>&1 & disown
+# ====== EJECUTAR TU INSTALADOR EN FOREGROUND (MISMO ENTORNO) ======
+echo "→ ejecutando install_termux.sh…"
+cd "$SRV_DIR"
+/data/data/com.termux/files/usr/bin/bash ./install_termux.sh | tee "$SRV_DIR/install.out"
 
-echo "PID install_termux.sh: $!" 
-echo "Log instalador: $INSTALL_LOG"
-echo "=== $(date '+%F %T') BOOT DONE (script salió; servicio seguirá en background) ==="
+echo "=== $(date '+%F %T') BOOT DONE ==="
