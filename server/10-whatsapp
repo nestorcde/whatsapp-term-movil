@@ -98,11 +98,12 @@ notify_ok() {
   echo "✅ Servidor arriba en ${url_android}"
   $have_termux_api && termux-toast -s "WhatsApp API arriba: ${url_android}" || true
   $have_termux_api && termux-notification \
-    --id "whatsapp-termux" \
-    --title "WhatsApp API (Termux)" \
-    --content "Servidor activo: ${url_android}" \
-    --button1 "Abrir" --button1-action "am start -a android.intent.action.VIEW -d ${url_android}" \
-    --priority high --vibrate 100,150,100 --sound || true
+  --id "whatsapp-termux" \
+  --title "WhatsApp API (Termux)" \
+  --content "Servidor activo: ${url_android}" \
+  --button1 "Abrir" \
+  --button1-action "am start -n com.whatsappbulk.sender/.MainActivity" \
+  --priority high --vibrate 100,150,100 --sound || true
 }
 
 is_port_up() {
