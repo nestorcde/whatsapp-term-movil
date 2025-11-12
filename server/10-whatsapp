@@ -26,84 +26,113 @@ for i in {1..120}; do
   sleep 2
 done
 
-# ====== HELPERS PKG SIN 'yes |' ======
-retry() { # retry <cmd...>
-  local n=0; local max=3
-  until "$@"; do
-    n=$((n+1)); [[ $n -ge $max ]] && return 1
-    sleep 2
-  done
+# ====== PKG HELPERS ======
+retry() { local n=0 max=3; until "$@"; do n=$((n+1)); [[ $n -ge $max ]] && return 1; sleep 2; done; }
+pkg_update() { echo "→ pkg update -y"; retry pkg update -y || true; }
+pkg_install_if_missing() {
+  local missing=()
+  for p in "$@"; do dpkg -s "$p" >/dev/null 2>&1 || missing+=("$p"); done
+  if ((${#missing[@]})); then echo "→ pkg install -y ${missing[*]}"; retry pkg install -y "${missing[@]}" || true; fi
 }
 
-pkg_update() {
-  echo "→ pkg update -y"
-  retry pkg update -y || true
-}
-
-pkg_install_if_missing() { # pkg_install_if_missing <pkg1> <pkg2> ...
-  local to_install=()
-  for p in "$@"; do
-    dpkg -s "$p" >/dev/null 2>&1 || to_install+=("$p")
-  done
-  if (( ${#to_install[@]} )); then
-    echo "→ pkg install -y ${to_install[*]}"
-    retry pkg install -y "${to_install[@]}" || true
-  else
-    echo "→ paquetes ya presentes: $*"
-  fi
-}
-
-# ====== PRE-REQS: x11-repo + chromium ANTES de tu instalador ======
+# ====== PRE-REQS ======
 pkg_update
 pkg_install_if_missing x11-repo
 pkg_update
-pkg_install_if_missing chromium fontconfig ttf-dejavu git nodejs curl jq dos2unix
+pkg_install_if_missing chromium fontconfig ttf-dejavu git nodejs curl jq dos2unix termux-api
 
-# Detectar chromium/headless
 CHROME_BIN="$PREFIX/bin/chromium-browser"
 if [[ ! -x "$CHROME_BIN" ]]; then
-  if command -v chromium >/dev/null 2>&1; then
-    CHROME_BIN="$(command -v chromium)"
-  elif command -v headless_shell >/dev/null 2>&1; then
-    CHROME_BIN="$(command -v headless_shell)"
-  else
-    echo "❌ Chromium no disponible. Verifica x11-repo y chromium."
-    exit 1
-  fi
+  if command -v chromium >/dev/null 2>&1; then CHROME_BIN="$(command -v chromium)"
+  elif command -v headless_shell >/dev/null 2>&1; then CHROME_BIN="$(command -v headless_shell)"
+  else echo "❌ Chromium no disponible"; exit 1; fi
 fi
 echo "🧭 Chromium: $CHROME_BIN"
 "$CHROME_BIN" --version || true
 
-# ====== REPO LIMPIO ======
+# ====== REPO ======
 REPO_URL="https://github.com/nestorcde/whatsapp-term-movil.git"
 APP_DIR="$HOME/whatsapp-term-movil"
 SRV_DIR="$APP_DIR/server"
+PORT="${PORT:-3000}"   # tu server usa 3000 por defecto
 
 echo "→ limpiando repo previo en: $APP_DIR"
 rm -rf "$APP_DIR"
 echo "→ git clone"
 git clone "$REPO_URL" "$APP_DIR"
 
-# Normalizar saltos de línea del instalador
 command -v dos2unix >/dev/null 2>&1 && dos2unix "$SRV_DIR/install_termux.sh" >/dev/null 2>&1 || true
 chmod +x "$SRV_DIR/install_termux.sh"
 
-# ====== ENTORNO RUNTIME (Puppeteer/Sharp) ======
+# ====== ENTORNO RUNTIME ======
 export PUPPETEER_SKIP_DOWNLOAD=1
 export PUPPETEER_SKIP_CHROMIUM_DOWNLOAD=true
 export PUPPETEER_EXECUTABLE_PATH="$CHROME_BIN"
 export CHROME_PATH="$CHROME_BIN"
 export PUPPETEER_ARGS="--headless=new --no-sandbox --disable-setuid-sandbox --disable-dev-shm-usage --disable-gpu --proxy-server=direct:// --no-proxy-server"
 
-# Forzar WASM para sharp
+# Forzar WASM para sharp (el instalador ya lo maneja; reexportamos por las dudas)
 export SHARP_BACKEND=wasm
 export SHARP_IGNORE_GLOBAL_LIBVIPS=1
 export npm_config_arch=wasm32
 export npm_config_force=true
 
-# ====== EJECUTAR TU INSTALADOR EN FOREGROUND (MISMO ENTORNO) ======
-echo "→ ejecutando install_termux.sh…"
+# ====== LANZAR INSTALADOR EN BACKGROUND ======
 cd "$SRV_DIR"
-/data/data/com.termux/files/usr/bin/bash ./install_termux.sh | tee "$SRV_DIR/install.out"
+INSTALL_LOG="$SRV_DIR/install.out"
+echo "→ ejecutando install_termux.sh (background)…"
+nohup "$PREFIX/bin/bash" ./install_termux.sh >"$INSTALL_LOG" 2>&1 & disown
+INSTALL_PID=$!
+echo "PID install_termux.sh: $INSTALL_PID"
+echo "Log instalador: $INSTALL_LOG"
 
-echo "=== $(date '+%F %T') BOOT DONE ==="
+# ====== FUNCS DE CHEQUEO ======
+have_termux_api=false
+if command -v termux-notification >/dev/null 2>&1 || command -v termux-toast >/dev/null 2>&1; then
+  have_termux_api=true
+fi
+
+notify_ok() {
+  local url_local="http://localhost:${PORT}"
+  local url_android="http://127.0.0.1:${PORT}"
+  echo "✅ Servidor arriba en ${url_android}"
+  $have_termux_api && termux-toast -s "WhatsApp API arriba: ${url_android}" || true
+  $have_termux_api && termux-notification \
+    --id "whatsapp-termux" \
+    --title "WhatsApp API (Termux)" \
+    --content "Servidor activo: ${url_android}" \
+    --button1 "Abrir" --button1-action "am start -a android.intent.action.VIEW -d ${url_android}" \
+    --priority high --vibrate 100,150,100 --sound || true
+}
+
+is_port_up() {
+  # preferir curl; fallback a ss/lsof
+  if curl -fsS "http://127.0.0.1:${PORT}" >/dev/null 2>&1; then return 0; fi
+  if command -v ss >/dev/null 2>&1 && ss -ltn | grep -q ":${PORT}\b"; then return 0; fi
+  if command -v lsof >/dev/null 2>&1 && lsof -iTCP:"${PORT}" -sTCP:LISTEN >/dev/null 2>&1; then return 0; fi
+  return 1
+}
+
+log_has_started() {
+  grep -qE "Servidor iniciado en puerto|Server is running on port" "$INSTALL_LOG" 2>/dev/null || return 1
+}
+
+# ====== ESPERAR ARRANQUE Y NOTIFICAR ======
+echo "→ esperando que el servidor escuche en :${PORT}…"
+for i in {1..120}; do
+  if is_port_up || log_has_started; then
+    notify_ok
+    echo "=== $(date '+%F %T') BOOT DONE (server up) ==="
+    exit 0
+  fi
+  sleep 2
+done
+
+# Si no levantó en 4 min, avisamos fallo
+echo "⚠️  No se detectó el servidor en :${PORT} tras el tiempo de espera."
+$have_termux_api && termux-notification \
+  --id "whatsapp-termux" \
+  --title "WhatsApp API (Termux)" \
+  --content "NO inició en :${PORT}. Revisá $INSTALL_LOG" \
+  --priority high --vibrate 150,200,150 --sound || true
+echo "=== $(date '+%F %T') BOOT DONE (timeout) ==="
